@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('roles', function (Blueprint $table) {
+        Schema::create('tool_inventories', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->foreignId('tool_id')->unique()->constrained()->cascadeOnDelete();
+            $table->unsignedInteger('total_stock')->default(0);
+            $table->unsignedInteger('reserved_stock')->default(0);
             $table->timestamps();
         });
     }
@@ -23,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('roles');
+        Schema::dropIfExists('tool_inventories');
     }
 };

@@ -13,7 +13,7 @@ class RentalPolicy
      */
     public function viewAny(User $user): bool
     {
-        return false;
+        return $user->roles->contains('admin'); // only admins can see all rentals
     }
 
     /**
@@ -21,7 +21,8 @@ class RentalPolicy
      */
     public function view(User $user, Rental $rental): bool
     {
-        return false;
+        return $user->roles->contains('admin') || $user->id === $rental->user_id;
+        // admins can view all, regular users can view their own rentals
     }
 
     /**
@@ -29,7 +30,7 @@ class RentalPolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        return true; // any logged-in user can rent tools
     }
 
     /**
@@ -37,7 +38,8 @@ class RentalPolicy
      */
     public function update(User $user, Rental $rental): bool
     {
-        return false;
+        // only the owner can edit, and only if it's still draft
+        return $user->id === $rental->user_id && $rental->status === 'draft';
     }
 
     /**
@@ -45,7 +47,8 @@ class RentalPolicy
      */
     public function delete(User $user, Rental $rental): bool
     {
-        return false;
+        // only the owner can delete, only if draft
+        return $user->id === $rental->user_id && $rental->status === 'draft';
     }
 
     /**
@@ -53,7 +56,7 @@ class RentalPolicy
      */
     public function restore(User $user, Rental $rental): bool
     {
-        return false;
+        return $user->roles->contains('admin'); // only admins can restore
     }
 
     /**
@@ -61,6 +64,6 @@ class RentalPolicy
      */
     public function forceDelete(User $user, Rental $rental): bool
     {
-        return false;
+        return $user->roles->contains('admin'); // only admins
     }
 }

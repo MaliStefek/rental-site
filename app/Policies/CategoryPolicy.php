@@ -2,27 +2,26 @@
 
 namespace App\Policies;
 
-use App\Models\Tool;
+use App\Models\Category;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
-class ToolPolicy
+class CategoryPolicy
 {
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        return true; // all users can view tool listings
+        return true; // all users can view categories
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Tool $tool): bool
+    public function view(User $user, Category $category): bool
     {
-        return $tool->is_active || $user->roles->contains('admin');
-        // anyone can see active tools, admins can see all
+        return true; // all users can see a category
     }
 
     /**
@@ -30,29 +29,29 @@ class ToolPolicy
      */
     public function create(User $user): bool
     {
-        return $user->roles->contains('admin'); // only admins can add tools
+        return $user->roles->contains('admin'); // only admins can add
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Tool $tool): bool
+    public function update(User $user, Category $category): bool
     {
-        return $user->roles->contains('admin'); // only admins can edit
+        return $user->roles->contains('admin'); // only admins
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Tool $tool): bool
+    public function delete(User $user, Category $category): bool
     {
-        return $user->roles->contains('admin'); // only admins can delete
+        return $user->roles->contains('admin'); // only admins
     }
 
     /**
      * Determine whether the user can restore the model.
      */
-    public function restore(User $user, Tool $tool): bool
+    public function restore(User $user, Category $category): bool
     {
         return $user->roles->contains('admin'); // only admins
     }
@@ -60,7 +59,7 @@ class ToolPolicy
     /**
      * Determine whether the user can permanently delete the model.
      */
-    public function forceDelete(User $user, Tool $tool): bool
+    public function forceDelete(User $user, Category $category): bool
     {
         return $user->roles->contains('admin'); // only admins
     }

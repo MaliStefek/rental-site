@@ -2,6 +2,7 @@
     <flux:sidebar.profile
         icon:trailing="chevrons-up-down"
         :initials="auth()->user()->initials()"
+        :aria-label="auth()->user()->name"
         data-test="sidebar-menu-button"
     />
 

@@ -11,12 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('categories', function (Blueprint $table) {
+        Schema::create('tool_maintenance_logs', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->foreignId('tool_id')->constrained()->restrictOnDelete();
+            $table->unsignedBigInteger('cost_cents')->default(0);
             $table->text('description')->nullable();
+            $table->date('maintenance_date')->index();
+            $table->date('next_due_date')->nullable();
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 
@@ -25,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('categories');
+        Schema::dropIfExists('tool_maintenance_logs');
     }
 };

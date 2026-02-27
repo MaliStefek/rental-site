@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ToolMaintanceLog;
+use App\Models\ToolMaintenanceLog;
 use Illuminate\Http\Request;
 
-class ToolMaintanceLogController extends Controller
+class ToolMaintenanceLogController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -34,7 +34,7 @@ class ToolMaintanceLogController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(ToolMaintanceLog $toolMaintanceLog)
+    public function show(ToolMaintenanceLog $toolMaintenanceLog)
     {
         //
     }
@@ -42,7 +42,7 @@ class ToolMaintanceLogController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(ToolMaintanceLog $toolMaintanceLog)
+    public function edit(ToolMaintenanceLog $toolMaintenanceLog)
     {
         //
     }
@@ -50,7 +50,7 @@ class ToolMaintanceLogController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, ToolMaintanceLog $toolMaintanceLog)
+    public function update(Request $request, ToolMaintenanceLog $toolMaintenanceLog)
     {
         //
     }
@@ -58,7 +58,7 @@ class ToolMaintanceLogController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(ToolMaintanceLog $toolMaintanceLog)
+    public function destroy(ToolMaintenanceLog $toolMaintenanceLog)
     {
         //
     }

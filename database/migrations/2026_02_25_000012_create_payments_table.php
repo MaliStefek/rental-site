@@ -1,10 +1,9 @@
 <?php
 
+use App\Enums\PaymentMethod;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use App\Models\Rental;
-use \App\Enums\PaymentMethod;
 
 return new class extends Migration
 {
@@ -15,10 +14,10 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(Rental::class)->constrained()->cascadeOnDelete();
-            $table->decimal('amount', 10, 2);
+            $table->foreignId('rental_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedBigInteger('amount_cents');
             $table->enum('payment_method', PaymentMethod::values());
-            $table->string('transaction_reference')->nullable();
+            $table->string('transaction_reference')->unique();
             $table->dateTime('paid_at');
             $table->timestamps();
         });
