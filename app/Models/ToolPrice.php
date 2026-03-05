@@ -12,6 +12,7 @@ class ToolPrice extends Model
     use SoftDeletes;
     
     protected $fillable = ['tool_id','pricing_type','price_cents'];
+    
 
     public function tool(): BelongsTo
     {

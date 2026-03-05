@@ -15,7 +15,11 @@ class Tool extends Model
     use HasFactory;
     use SoftDeletes;
 
-    protected $fillable = ['category_id','name','sku','slug','description','is_active','image_path'];
+    protected $fillable = ['category_id','name','slug','description','is_active','image_path'];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
 
     public function category(): BelongsTo
     {
@@ -40,5 +44,10 @@ class Tool extends Model
     public function rentalItems(): HasMany
     {
         return $this->hasMany(RentalItem::class);
+    }
+
+    public function assets()
+    {
+        return $this->hasMany(Asset::class);
     }
 }
