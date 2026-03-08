@@ -7,10 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ToolMaintenanceLog extends Model
 {
-    protected $fillable = ['tool_id','cost_cents','description','maintenance_date','next_due_date'];
+    protected $fillable = ['asset_id','cost_cents','description','maintenance_date','next_due_date'];
 
-    public function tool(): BelongsTo
+    public function asset()
     {
-        return $this->belongsTo(Tool::class);
+        return $this->belongsTo(Asset::class);
     }
 }

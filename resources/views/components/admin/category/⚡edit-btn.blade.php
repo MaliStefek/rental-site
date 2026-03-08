@@ -11,7 +11,6 @@ new class extends Component {
     public $name;
     public $description;
 
-
     protected $rules = [
         'name' => 'required|string|max:255',
         'description' => 'nullable|string|max:255',
@@ -46,27 +45,25 @@ new class extends Component {
 
         $this->dispatch('categoryUpdated', categoryId: $this->category->id);
 
-        $this->modal('confirm-category-edit')->close();
+        $this->modal("confirm-category-edit-{$this->category->id}")->close();
     }
 };
 ?>
 
-<section class="mt-10 space-y-6">
-    <flux:modal.trigger name="confirm-category-edit">
-        <flux:button variant="primary" x-data=""
-            x-on:click.prevent="$dispatch('open-modal', 'confirm-category-edit')" data-test="edit-category-button">
-            {{ __('Edit category') }}
+<section>
+    <flux:modal.trigger name="confirm-category-edit-{{ $category->id }}">
+        <flux:button variant="primary" size="sm" data-test="edit-category-button">
+            {{ __('Edit') }}
         </flux:button>
     </flux:modal.trigger>
 
-    <flux:modal name="confirm-category-edit" :show="$errors->isNotEmpty()" focusable class="max-w-lg">
+    <flux:modal name="confirm-category-edit-{{ $category->id }}" :show="$errors->isNotEmpty()" focusable class="max-w-lg pt-12">
         <form method="POST" wire:submit="editCategory" class="space-y-6">
             @csrf
             <div>
                 <flux:heading size="lg">{{ __('Edit Category') }}</flux:heading>
-
                 <flux:subheading>
-                    {{ __('Please fill in the details for the category you want to edit.') }}
+                    {{ __('Editing details for: ') }} <strong>{{ $category->name }}</strong>
                 </flux:subheading>
             </div>
 
@@ -80,7 +77,7 @@ new class extends Component {
                 </flux:modal.close>
 
                 <flux:button variant="primary" type="submit" data-test="confirm-edit-category-button">
-                    {{ __('Edit category') }}
+                    {{ __('Save Changes') }}
                 </flux:button>
             </div>
         </form>

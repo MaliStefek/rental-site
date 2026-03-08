@@ -4,6 +4,8 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Asset;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
+use App\Enums\AssetStatus;
 
 new class extends Component {
     use WithPagination;
@@ -13,6 +15,12 @@ new class extends Component {
     public function updatedSearch()
     {
         $this->resetPage();
+    }
+
+    #[On('inventoryUpdated')]
+    public function refreshAssets(): void
+    {
+        unset($this->assets);
     }
 
     #[Computed]
@@ -54,6 +62,8 @@ new class extends Component {
             <flux:table.column>{{ __('Serial Number') }}</flux:table.column>
             <flux:table.column>{{ __('Status') }}</flux:table.column>
             <flux:table.column>{{ __('Added Date') }}</flux:table.column>
+
+            <flux:table.column class="text-right">{{ __('Actions') }}</flux:table.column>
         </flux:table.columns>
 
         <flux:table.rows>
@@ -73,7 +83,7 @@ new class extends Component {
 
                     <flux:table.cell>
                         @php
-                            $variant = match($asset->status) {
+                            $variant = match($asset->status->value) {
                                 'available' => 'success',
                                 'rented' => 'warning',
                                 'maintenance' => 'danger',
@@ -82,12 +92,22 @@ new class extends Component {
                         @endphp
                         
                         <flux:badge :variant="$variant" size="sm">
-                            {{ ucfirst($asset->status) }}
+                            {{ ucfirst($asset->status->value) }}
                         </flux:badge>
                     </flux:table.cell>
 
                     <flux:table.cell class="text-zinc-500">
                         {{ $asset->created_at->format('M d, Y') }}
+                    </flux:table.cell>
+
+                    <flux:table.cell>
+                        <div class="flex items-center justify-end gap-2">
+                            <livewire:admin.inventory.maintenance-btn :asset="$asset" :wire:key="'maintenance-'.$asset->id" />
+                        
+                            @if($asset->status !== AssetStatus::RETIRED)
+                                <livewire:admin.inventory.retire-btn :asset="$asset" :wire:key="'retire-'.$asset->id" />
+                            @endif
+                        </div>
                     </flux:table.cell>
                 </flux:table.row>
             @endforeach

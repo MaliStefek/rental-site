@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AssetStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -16,7 +17,7 @@ return new class extends Migration
             $table->foreignId('tool_id')->constrained()->onDelete('cascade');
             $table->string('sku')->unique(); 
             $table->string('serial_number')->nullable();
-            $table->string('status')->default('available');
+            $table->enum('status', AssetStatus::values())->default(AssetStatus::AVAILABLE->value);
             $table->text('internal_notes')->nullable();
             $table->timestamps();
         });

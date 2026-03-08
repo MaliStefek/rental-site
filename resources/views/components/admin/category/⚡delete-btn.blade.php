@@ -10,24 +10,24 @@ new class extends Component {
     {
         $this->category->delete();
 
-        $this->modal('confirm-category-deletion')->close();
+        $this->modal("confirm-category-deletion-{$this->category->id}")->close();
 
         $this->dispatch('categoryDeleted', categoryId: $this->category->id);
     }
 }; ?>
 
-<section class="mt-10 space-y-6">
-    <flux:modal.trigger name="confirm-category-deletion">
-        <flux:button variant="danger" x-data="" x-on:click.prevent="$dispatch('open-modal', 'confirm-category-deletion')" data-test="delete-category-button">
-            {{ __('Delete category') }}
+<section>
+    <flux:modal.trigger name="confirm-category-deletion-{{ $category->id }}">
+        <flux:button variant="danger" size="sm" data-test="delete-category-button">
+            {{ __('Delete') }}
         </flux:button>
     </flux:modal.trigger>
 
-    <flux:modal name="confirm-category-deletion" :show="$errors->isNotEmpty()" focusable class="max-w-lg">
+    <flux:modal name="confirm-category-deletion-{{ $category->id }}" :show="$errors->isNotEmpty()" focusable class="max-w-lg pt-12">
         <form method="POST" wire:submit.prevent="deleteCategory" class="space-y-6">
             @csrf
-            <div>
-                <flux:heading size="lg">{{ __('Are you sure you want to delete your category?') }}</flux:heading>
+            <div class="text-center">
+                <flux:heading size="lg">{{ __('Are you sure you want to delete :name?', ['name' => $category->name]) }}</flux:heading>
             </div>
 
             <div class="flex justify-end space-x-2 rtl:space-x-reverse">

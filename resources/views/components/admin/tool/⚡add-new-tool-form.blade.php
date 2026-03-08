@@ -2,48 +2,36 @@
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Illuminate\Validation\Rule;
-use App\Models\Tool;
 use App\Models\Category;
+use App\Models\Tool;
 use App\Enums\PricingType;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\UniqueConstraintViolationException;
 
-new class extends Component {
+new class extends Component
+{
     use WithFileUploads; 
 
-    public Tool $tool;
-    public $name;
-    public $description;
     public $categories;
-    public $selectedCategoryId;
-    public $is_active;
+
+    public $name = '';
+    public $description = '';
+    public $selectedCategoryId = '';
+    public $is_active = true;
     public $image;
     
     public array $prices = [];
 
-    public function mount(Tool $tool)
+    public function mount()
     {
-        $this->tool = $tool;
-        $this->name = $tool->name;
-        $this->description = $tool->description;
-        $this->selectedCategoryId = $tool->category_id;
-        $this->is_active = $tool->is_active;
-        
         $this->categories = Category::all();
-
-        $this->tool->load('prices');
-        if ($this->tool->prices->count() > 0) {
-            foreach ($this->tool->prices as $price) {
-                $this->prices[] = [
-                    'type' => $price->pricing_type,
-                    'price' => number_format($price->price_cents / 100, 2, '.', '')
-                ];
-            }
-        } else {
-            $this->prices = [['type' => PricingType::DAILY->value, 'price' => null]];
-        }
+        
+        $this->prices = [
+            ['type' => PricingType::DAILY->value, 'price' => null]
+        ];
     }
 
     public function addPriceRow()
@@ -68,12 +56,12 @@ new class extends Component {
         }
     }
 
-    public function editTool()
+    public function addTool()
     {
         $this->validate([
             'name' => [
-                'required', 'string', 'max:255',
-                Rule::unique('tools')->ignore($this->tool->id)->whereNull('deleted_at')
+                'required', 'string', 'max:255', 
+                Rule::unique('tools')->whereNull('deleted_at')
             ],
             'description' => 'nullable|string|max:255',
             'selectedCategoryId' => 'required|exists:categories,id',
@@ -81,7 +69,7 @@ new class extends Component {
             'image' => 'nullable|image|max:2048',
             
             'prices' => 'required|array|min:1',
-            'prices.*.type' => ['required', 'string', 'distinct', Rule::enum(PricingType::class)],
+            'prices.*.type' => ['required', 'string', Rule::enum(PricingType::class)],
             'prices.*.price' => ['required', 'numeric', 'min:0.01'],
         ]);
 
@@ -92,71 +80,95 @@ new class extends Component {
         }
 
         $oldImagePath = null;
+        $path = null;
 
-        DB::transaction(function () use (&$oldImagePath) {
-            $path = null;
-
-            try {
-                if ($this->image) {
-                    $path = $this->image->store('tools', 'public');
-                    
-                    if ($this->tool->image_path) {
-                        $oldImagePath = $this->tool->image_path;
-                    }
-                }
-
-                $this->tool->update([
-                    'name' => $this->name,
-                    'description' => $this->description,
-                    'category_id' => $this->selectedCategoryId,
-                    'is_active' => $this->is_active,
-                    'image_path' => $path ?? $this->tool->image_path,
-                ]);
-
-                $this->tool->prices()->delete(); 
+        try {
+            DB::transaction(function () use (&$oldImagePath, &$path) {
+                $tool = Tool::onlyTrashed()->where('name', $this->name)->first();
                 
-                foreach ($this->prices as $priceData) {
-                    $this->tool->prices()->create([
-                        'pricing_type' => $priceData['type'],
-                        'price_cents' => (int) round($priceData['price'] * 100), 
-                    ]);
+                try {
+                    $path = $this->image ? $this->image->store('tools', 'public') : null;
+
+                    if ($tool) {
+                        if ($path && $tool->image_path) {
+                            $oldImagePath = $tool->image_path;
+                        }
+
+                        $tool->restore();
+                        $tool->update([
+                            'description' => $this->description,
+                            'slug' => Str::slug($this->name),
+                            'category_id' => $this->selectedCategoryId,
+                            'is_active' => $this->is_active,
+                            'image_path' => $path ?? $tool->image_path,
+                        ]);
+                    } else {
+                        $tool = Tool::create([
+                            'name' => $this->name, 
+                            'description' => $this->description,
+                            'slug' => Str::slug($this->name),
+                            'category_id' => $this->selectedCategoryId,
+                            'is_active' => $this->is_active,
+                            'image_path' => $path,
+                        ]);
+                    }
+
+                    $tool->prices()->delete(); 
+                    
+                    foreach ($this->prices as $priceData) {
+                        $tool->prices()->create([
+                            'pricing_type' => $priceData['type'],
+                            'price_cents' => (int) round($priceData['price'] * 100), 
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    if ($path) {
+                        Storage::disk('public')->delete($path);
+                    }
+                    throw $e;
                 }
-            } catch (\Throwable $e) {
-                if ($path) {
-                    Storage::disk('public')->delete($path);
-                }
-                throw $e;
+            });
+            
+        } catch (UniqueConstraintViolationException $e) {
+            if ($path) {
+                 Storage::disk('public')->delete($path);
             }
-        });
+            $this->addError('name', __('A tool with this name was just created. Please try a different name.'));
+            return;
+        }
 
         if ($oldImagePath) {
             Storage::disk('public')->delete($oldImagePath);
         }
 
-        $this->dispatch('toolUpdated', toolId: $this->tool->id);
-        $this->modal("confirm-tool-edit-{$this->tool->id}")->close();
+        $this->reset(['name', 'description', 'selectedCategoryId', 'image']);
+        $this->is_active = true;
+        $this->prices = [['type' => PricingType::DAILY->value, 'price' => null]];
+        
+        $this->dispatch('toolAdded');
+        $this->modal('confirm-tool-addition')->close();
     }
 };
 ?>
 
-<section>
-    <flux:modal.trigger name="confirm-tool-edit-{{ $tool->id }}">
-        <flux:button size="sm" variant="primary" data-test="edit-tool-button">
-            {{ __('Edit') }}
-        </flux:button>
+<section class="mt-10 space-y-6">
+    <div class="relative mb-5">
+        <flux:heading>{{ __('Add New Tool') }}</flux:heading>
+        <flux:subheading>{{ __('Add a new tool to your rental site') }}</flux:subheading>
+    </div>
+
+    <flux:modal.trigger name="confirm-tool-addition">
+        <flux:button variant="primary">{{ __('Add new tool') }}</flux:button>
     </flux:modal.trigger>
 
-    <flux:modal name="confirm-tool-edit-{{ $tool->id }}" class="max-w-lg pt-12">
-        <form wire:submit="editTool" class="space-y-6">
-            <div>
-                <flux:heading size="lg">{{ __('Edit Tool') }}</flux:heading>
-                <flux:subheading>{{ __('Editing details for: ') }} <strong>{{ $tool->name }}</strong></flux:subheading>
-            </div>
+    <flux:modal name="confirm-tool-addition" class="max-w-lg pt-12">
+        <form wire:submit="addTool" class="space-y-6">
+            <flux:heading size="lg">{{ __('Add New Tool') }}</flux:heading>
 
             <flux:input wire:model="name" :label="__('Tool Name')" />
-            <flux:textarea wire:model="description" :label="__('Tool Description')" />
+            <flux:textarea wire:model="description" :label="__('Description')" />
 
-            <flux:select wire:model="selectedCategoryId" :label="__('Category')">
+            <flux:select wire:model="selectedCategoryId" :label="__('Category')" placeholder="Choose a category...">
                 @foreach ($categories as $category)
                     <flux:select.option value="{{ $category->id }}">{{ $category->name }}</flux:select.option>
                 @endforeach
@@ -181,7 +193,7 @@ new class extends Component {
                     @endphp
 
                     @foreach($prices as $index => $priceRow)
-                        <div class="flex items-start gap-3" wire:key="edit-price-row-{{ $index }}">
+                        <div class="flex items-start gap-3" wire:key="price-row-{{ $index }}">
                             
                             <div class="flex-1">
                                 <flux:select wire:model="prices.{{ $index }}.type" aria-label="{{ __('Pricing Type') }}">
@@ -227,21 +239,17 @@ new class extends Component {
             </div>
 
             <div class="space-y-2">
-                <flux:label for="edit-image-upload-{{ $tool->id }}">{{ __('Update Image') }}</flux:label>
+                <flux:label for="image-upload">{{ __('Featured Image') }}</flux:label>
                 
-                <input type="file" wire:model="image" id="edit-image-upload-{{ $tool->id }}" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90" accept="image/*" />
+                @if ($this->imagePreviewUrl)
+                    <img src="{{ $this->imagePreviewUrl }}" class="w-full h-48 object-cover rounded-lg mb-2" alt="{{ __('Image preview') }}">
+                @endif
+                
+                <input type="file" wire:model="image" id="image-upload" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90">
                 <flux:error name="image" />
-
-                <div class="mt-2">
-                    @if ($this->imagePreviewUrl) 
-                        <img src="{{ $this->imagePreviewUrl }}" class="w-20 h-20 rounded shadow-sm object-cover border border-zinc-200" alt="{{ __('New image preview') }}" />
-                    @elseif ($tool->image_path)
-                        <img src="{{ asset('storage/'.$tool->image_path) }}" class="w-20 h-20 rounded shadow-sm object-cover border border-zinc-200" alt="{{ __('Current tool image') }}" />
-                    @endif
-                </div>
             </div>
 
-            <flux:checkbox wire:model="is_active" :label="__('Available for rent')" />
+            <flux:checkbox label="Is Active?" wire:model="is_active" />
 
             <div class="flex justify-end space-x-2">
                 <flux:modal.close>
@@ -249,7 +257,7 @@ new class extends Component {
                 </flux:modal.close>
 
                 <flux:button variant="primary" type="submit">
-                    {{ __('Save Changes') }}
+                    {{ __('Save Tool') }}
                 </flux:button>
             </div>
         </form>

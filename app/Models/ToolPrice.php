@@ -3,13 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 
 class ToolPrice extends Model
 {
-    use SoftDeletes;
     
     protected $fillable = ['tool_id','pricing_type','price_cents'];
     

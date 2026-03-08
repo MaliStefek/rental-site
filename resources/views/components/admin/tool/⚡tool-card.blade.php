@@ -15,20 +15,20 @@ new class extends Component
     public function reloadTools($toolId)
     {
         if ($this->tool->id == $toolId) {
-            $this->tool->refresh()->load('category');
+            $this->tool->refresh()->load(['category', 'prices']);
         }
     }
 };
 ?>
-<flux:card class="flex flex-col justify-between h-full transition-shadow hover:shadow-md overflow-hidden">
-    <div class="space-y-4">
+<flux:card class="flex flex-col h-full transition-shadow hover:shadow-md overflow-hidden">
+    <div class="space-y-4 flex-1">
         <div class="flex items-center justify-between">
             <flux:text size="xs" class="uppercase tracking-widest font-semibold text-zinc-400">
                 {{ $tool->category?->name ?? __('Uncategorized') }}
             </flux:text>
             
             @if (auth()->user()->isAdmin())
-                <flux:badge size="sm" :color="$tool->is_active ? 'green' : 'zinc'" inset="top bottom">
+                <flux:badge size="sm" :color="$tool->is_active ? 'green' : 'zinc'">
                     {{ $tool->is_active ? __('Active') : __('Inactive') }}
                 </flux:badge>
             @endif
@@ -59,11 +59,34 @@ new class extends Component
                 </flux:text>
             @endif
         </div>
+
+        <div class="pt-2">
+            @if($tool->prices && $tool->prices->isNotEmpty())
+                <div class="flex flex-wrap gap-2">
+                    @foreach($tool->prices as $price)
+                        <flux:badge size="sm" variant="subtle" class="font-mono">
+                            <span class="text-zinc-500 mr-1">{{ ucfirst($price->pricing_type) }}:</span> 
+                            ${{ number_format($price->price_cents / 100, 2) }}
+                        </flux:badge>
+                    @endforeach
+                </div>
+            @else
+                <flux:text size="sm" class="italic text-zinc-400">
+                    {{ __('No pricing set.') }}
+                </flux:text>
+            @endif
+        </div>
+
     </div>
 
-    <div class="mt-6 pt-4 border-t border-zinc-100 dark:border-white/10 flex justify-end items-center gap-2">
-        <livewire:admin.tool.csv-btn :tool="$tool" :wire:key="'csv-'.$tool->id" />
-        <livewire:admin.tool.edit-btn :tool="$tool" :wire:key="'edit-'.$tool->id" />
-        <livewire:admin.tool.delete-btn :tool="$tool" :wire:key="'delete-'.$tool->id" />
+    <div class="mt-auto pt-5 border-t border-zinc-100 dark:border-white/10 flex flex-wrap justify-between items-center gap-y-3">
+        <div>
+            <livewire:admin.tool.csv-btn :tool="$tool" :wire:key="'csv-'.$tool->id" />
+        </div>
+
+        <div class="flex items-center gap-2">
+            <livewire:admin.tool.edit-btn :tool="$tool" :wire:key="'edit-'.$tool->id" />
+            <livewire:admin.tool.delete-btn :tool="$tool" :wire:key="'delete-'.$tool->id" />
+        </div>
     </div>
 </flux:card>

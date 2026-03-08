@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tool_maintenance_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tool_id')->constrained()->restrictOnDelete();
+            $table->foreignId('asset_id')->constrained('assets')->cascadeOnDelete();
             $table->unsignedBigInteger('cost_cents')->default(0);
             $table->text('description')->nullable();
             $table->date('maintenance_date')->index();

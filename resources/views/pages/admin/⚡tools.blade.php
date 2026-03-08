@@ -31,7 +31,7 @@ new class extends Component
         <p class="text-gray-600">{{ __('Welcome to the admin tools section. Here you can manage your rental site tools and settings.') }}</p>
 
         <div class="grid md:grid-cols-2 gap-6">
-            <livewire:pages::admin.add-new-tool-form />
+            <livewire:admin.tool.add-new-tool-form />
 
             @foreach ($tools as $tool)
                 <livewire:admin.tool.tool-card :tool="$tool" wire:key="tool-{{ $tool->id }}" />

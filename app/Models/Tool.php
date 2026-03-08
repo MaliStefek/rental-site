@@ -36,11 +36,6 @@ class Tool extends Model
         return $this->hasMany(ToolPrice::class);
     }
 
-    public function maintenanceLogs(): HasMany
-    {
-        return $this->hasMany(ToolMaintenanceLog::class);
-    }
-
     public function rentalItems(): HasMany
     {
         return $this->hasMany(RentalItem::class);
