@@ -8,13 +8,13 @@ new class extends Component
 {
     public array $cart = [];
 
-    public function mount()
+    public function mount(): void
     {
         $this->loadCart();
     }
 
     #[On('cart-updated')]
-    public function loadCart()
+    public function loadCart(): void
     {
         $this->cart = session()->get('cart', []);
     }

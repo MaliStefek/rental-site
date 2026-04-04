@@ -25,12 +25,14 @@ new class extends Component {
             $delimiter = (substr_count($firstLine, ';') > substr_count($firstLine, ',')) ? ';' : ',';
             rewind($file);
 
-            $count = DB::transaction(function () use ($file, $delimiter) {
+            $count = DB::transaction(function () use ($file, $delimiter): int {
                 fgetcsv($file, 0, $delimiter);
 
                 $count = 0;
                 while (($row = fgetcsv($file, 0, $delimiter)) !== FALSE) {
-                    if (empty($row[0])) continue;
+                    if (empty($row[0])) {
+                        continue;
+                    }
 
                     $this->tool->assets()->firstOrCreate(
                         ['sku' => trim($row[0])],

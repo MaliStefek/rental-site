@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Rental>
@@ -28,7 +28,7 @@ class RentalFactory extends Factory
         return [
             'user_id' => User::factory(),
             'status' => $this->faker->randomElement([
-                'active','confirmed','cancelled','draft','overdue','returned'
+                'active', 'confirmed', 'cancelled', 'draft', 'overdue', 'returned',
             ]),
             'start_at' => $start,
             'end_at' => $end,
@@ -39,7 +39,7 @@ class RentalFactory extends Factory
             'total_cents' => $total,
             'paid_cents' => $this->faker->numberBetween(0, $total),
             'payment_status' => $this->faker->randomElement([
-                'paid','unpaid','partial','refunded'
+                'paid', 'unpaid', 'partial', 'refunded',
             ]),
             'notes' => $this->faker->optional()->sentence(),
         ];

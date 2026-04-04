@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
 use App\Models\Rental;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class RentalPolicy
 {
@@ -21,7 +22,11 @@ class RentalPolicy
      */
     public function view(User $user, Rental $rental): bool
     {
-        return $user->roles->contains('admin') || $user->id === $rental->user_id;
+        if ($user->roles->contains('admin')) {
+            return true;
+        }
+
+        return $user->id === $rental->user_id;
         // admins can view all, regular users can view their own rentals
     }
 

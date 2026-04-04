@@ -9,16 +9,20 @@ new #[Layout('layouts.app')] class extends Component
     public int $step = 1;
 
     #[On('change-step')]
-    public function changeStep(int $step)
+    public function changeStep(int $step): void
     {
-        if ($step < 1 || $step > 5) return;
+        if ($step < 1 || $step > 5) {
+            return;
+        }
         
         $this->step = $step;
     }
 
-    public function goToStep(int $targetStep)
+    public function goToStep(int $targetStep): void
     {
-        if ($targetStep < 1 || $targetStep > $this->step) return;
+        if ($targetStep < 1 || $targetStep > $this->step) {
+            return;
+        }
         
         $this->step = $targetStep;
     }

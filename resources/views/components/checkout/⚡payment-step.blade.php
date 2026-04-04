@@ -23,13 +23,13 @@ new class extends Component
 
     private ?int $cachedTotal = null;
 
-    public function mount()
+    public function mount(): void
     {
         $this->info = session()->get('checkout_info', []);
         $this->dates = session()->get('checkout_dates', []);
         $this->cart = session()->get('cart', []);
 
-        if (empty($this->cart) || empty($this->dates['start']) || empty($this->dates['end'])) {
+        if ($this->cart === [] || empty($this->dates['start']) || empty($this->dates['end'])) {
             return;
         }
 
@@ -184,7 +184,9 @@ new class extends Component
 
     public function confirmOrder()
     {
-        if (!$this->draftRentalId) return;
+        if (!$this->draftRentalId) {
+            return;
+        }
 
         try {
             $rental = Rental::find($this->draftRentalId);
@@ -230,12 +232,12 @@ new class extends Component
         return $this->getRentalTierAndDays()['days'];
     }
 
-    public function getTotalProperty() 
+    public function getTotalProperty(): int 
     {
         return $this->cachedTotal ??= $this->calculateSecureTotal();
     }
 
-    public function getDepositProperty() 
+    public function getDepositProperty(): int 
     {
         return (int) round($this->total * 0.20);
     }

@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
+use Database\Factories\ToolFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,11 +13,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tool extends Model
 {
-    /** @use HasFactory<\Database\Factories\ToolFactory> */
+    /** @use HasFactory<ToolFactory> */
     use HasFactory;
+
     use SoftDeletes;
 
-    protected $fillable = ['category_id','name','slug','description','is_active','image_path'];
+    protected $fillable = ['category_id', 'name', 'slug', 'description', 'is_active', 'image_path'];
 
     protected $casts = [
         'is_active' => 'boolean',
@@ -45,7 +49,7 @@ class Tool extends Model
         if (array_key_exists('available_assets_count', $this->getAttributes())) {
             return $this->available_assets_count;
         }
-        
+
         return $this->assets()->where('status', 'available')->count();
     }
 }

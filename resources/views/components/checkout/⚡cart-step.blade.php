@@ -8,10 +8,10 @@ use App\Enums\PricingType;
 new class extends Component 
 {
     public array $cart = [];
-    public $startDate = null;
-    public $endDate = null;
+    public $startDate;
+    public $endDate;
 
-    public function mount()
+    public function mount(): void
     {
         $this->cart = session()->get('cart', []);
         $dates = session()->get('checkout_dates', []);
@@ -19,16 +19,20 @@ new class extends Component
         $this->endDate = $dates['end'] ?? null;
     }
 
-    public function updateQuantity($cartKey, $amount)
+    public function updateQuantity($cartKey, $amount): void
     {
-        if (!isset($this->cart[$cartKey])) return;
+        if (!isset($this->cart[$cartKey])) {
+            return;
+        }
         $this->cart[$cartKey]['quantity'] += $amount;
-        if ($this->cart[$cartKey]['quantity'] <= 0) unset($this->cart[$cartKey]);
+        if ($this->cart[$cartKey]['quantity'] <= 0) {
+            unset($this->cart[$cartKey]);
+        }
         session()->put('cart', $this->cart);
         $this->dispatch('cart-updated');
     }
 
-    public function removeItem($cartKey)
+    public function removeItem($cartKey): void
     {
         if (isset($this->cart[$cartKey])) {
             unset($this->cart[$cartKey]);
@@ -39,13 +43,17 @@ new class extends Component
 
     public function getRentalDaysProperty()
     {
-        if (!$this->startDate || !$this->endDate) return 1;
+        if (!$this->startDate || !$this->endDate) {
+            return 1;
+        }
         try {
             $start = Carbon::parse($this->startDate)->startOfDay();
             $end = Carbon::parse($this->endDate)->startOfDay();
-            if ($end->lessThan($start)) return 1;
+            if ($end->lessThan($start)) {
+                return 1;
+            }
             return max(1, $start->diffInDays($end) + 1);
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return 1;
         }
     }
@@ -53,12 +61,19 @@ new class extends Component
     public function getCurrentTierProperty()
     {
         $days = $this->rentalDays;
-        if ($days >= 6) return PricingType::DAILY_LONG->value;
-        if ($days >= 3) return PricingType::DAILY_MID->value;
+        if ($days >= 6) {
+            return PricingType::DAILY_LONG->value;
+        }
+        if ($days >= 3) {
+            return PricingType::DAILY_MID->value;
+        }
         return PricingType::DAILY_SHORT->value;
     }
 
-    public function getCartItemsWithPricesProperty()
+    /**
+     * @return mixed[][]
+     */
+    public function getCartItemsWithPricesProperty(): array
     {
         $tier = $this->currentTier;
         $toolIds = collect($this->cart)->pluck('tool_id')->toArray();
@@ -99,7 +114,7 @@ new class extends Component
         return $this->dailySubtotal * $this->rentalDays;
     }
 
-    public function nextStep()
+    public function nextStep(): void
     {
         $this->validate([
             'startDate' => ['required', 'date', 'after_or_equal:today'],

@@ -12,7 +12,7 @@ new class extends Component {
 
     public $search = '';
 
-    public function updatedSearch()
+    public function updatedSearch(): void
     {
         $this->resetPage();
     }

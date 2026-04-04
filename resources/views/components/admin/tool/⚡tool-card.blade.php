@@ -13,7 +13,7 @@ new class extends Component
     public Tool $tool;
 
     #[On('toolUpdated')]
-    public function reloadTools($toolId)
+    public function reloadTools($toolId): void
     {
         if ($this->tool->id == $toolId) {
             $this->tool->refresh()->load(['category', 'prices']);

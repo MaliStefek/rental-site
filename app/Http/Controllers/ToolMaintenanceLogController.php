@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\ToolMaintenanceLog;
@@ -10,7 +12,7 @@ class ToolMaintenanceLogController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(): void
     {
         //
     }
@@ -18,7 +20,7 @@ class ToolMaintenanceLogController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(): void
     {
         //
     }
@@ -26,7 +28,7 @@ class ToolMaintenanceLogController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request): void
     {
         //
     }
@@ -34,7 +36,7 @@ class ToolMaintenanceLogController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(ToolMaintenanceLog $toolMaintenanceLog)
+    public function show(ToolMaintenanceLog $toolMaintenanceLog): void
     {
         //
     }
@@ -42,7 +44,7 @@ class ToolMaintenanceLogController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(ToolMaintenanceLog $toolMaintenanceLog)
+    public function edit(ToolMaintenanceLog $toolMaintenanceLog): void
     {
         //
     }
@@ -50,7 +52,7 @@ class ToolMaintenanceLogController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, ToolMaintenanceLog $toolMaintenanceLog)
+    public function update(Request $request, ToolMaintenanceLog $toolMaintenanceLog): void
     {
         //
     }
@@ -58,7 +60,7 @@ class ToolMaintenanceLogController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(ToolMaintenanceLog $toolMaintenanceLog)
+    public function destroy(ToolMaintenanceLog $toolMaintenanceLog): void
     {
         //
     }

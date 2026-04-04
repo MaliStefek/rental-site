@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Enums;
 
 enum AssetStatus: string
@@ -11,6 +13,6 @@ enum AssetStatus: string
 
     public static function values(): array
     {
-        return array_map(fn(AssetStatus $status) => $status->value, self::cases());
+        return array_map(fn (AssetStatus $status) => $status->value, self::cases());
     }
 }

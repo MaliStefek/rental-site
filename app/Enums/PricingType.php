@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Enums;
 
 enum PricingType: string
@@ -10,6 +12,6 @@ enum PricingType: string
 
     public static function values(): array
     {
-        return array_map(fn(PricingType $type) => $type->value, self::cases());
+        return array_map(fn (PricingType $type) => $type->value, self::cases());
     }
 }

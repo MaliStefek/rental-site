@@ -11,14 +11,14 @@ new class extends Component {
     public $name;
     public $description;
 
-    public function mount(Category $category)
+    public function mount(Category $category): void
     {
         $this->category = $category;
         $this->name = $category->name;
         $this->description = $category->description;
     }
 
-    public function editCategory()
+    public function editCategory(): void
     {
         $this->authorize('update', $this->category);
 

@@ -21,12 +21,10 @@ new #[Layout('layouts.app')] class extends Component
     #[Computed]
     public function featuredTools()
     {
-        $toolIds = Cache::remember('home.featured_tool_ids', now()->addMinutes(30), function () {
-            return Tool::where('is_active', true)
-                ->inRandomOrder()
-                ->take(4)
-                ->pluck('id');
-        });
+        $toolIds = Cache::remember('home.featured_tool_ids', now()->addMinutes(30), fn() => Tool::where('is_active', true)
+            ->inRandomOrder()
+            ->take(4)
+            ->pluck('id'));
 
         if ($toolIds->isEmpty()) {
             return collect();

@@ -1,20 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Stripe\Webhook;
-use App\Models\Rental;
-use App\Models\Payment;
-use App\Models\Asset;
 use App\Enums\AssetStatus;
 use App\Enums\PaymentMethod;
-use App\Enums\RentalStatus;
 use App\Enums\PaymentStatus;
+use App\Enums\RentalStatus;
 use App\Mail\OrderConfirmed;
+use App\Models\Asset;
+use App\Models\Payment;
+use App\Models\Rental;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Stripe\Exception\SignatureVerificationException;
+use Stripe\Webhook;
+use UnexpectedValueException;
 
 class WebhookController extends Controller
 {
@@ -26,7 +31,7 @@ class WebhookController extends Controller
 
         try {
             $event = Webhook::constructEvent($payload, $sig_header, $endpoint_secret);
-        } catch (\UnexpectedValueException | \Stripe\Exception\SignatureVerificationException $e) {
+        } catch (UnexpectedValueException|SignatureVerificationException) {
             return response('Invalid request', 400);
         }
 
@@ -37,23 +42,24 @@ class WebhookController extends Controller
             if ($rentalId) {
                 $this->processSuccessfulPayment($rentalId, $paymentIntent);
             } else {
-                Log::warning('Webhook triggered but no rental_id found in metadata. ID: ' . $paymentIntent->id);
+                Log::warning('Webhook triggered but no rental_id found in metadata. ID: '.$paymentIntent->id);
             }
         }
 
         return response('Webhook handled successfully', 200);
     }
 
-    private function processSuccessfulPayment($rentalId, $paymentIntent)
+    private function processSuccessfulPayment($rentalId, $paymentIntent): void
     {
         DB::beginTransaction();
 
         try {
             $rental = Rental::with('user')->where('id', $rentalId)->lockForUpdate()->first();
 
-            if (!$rental) {
+            if (! $rental) {
                 DB::rollBack();
                 Log::error("Webhook error: Rental #{$rentalId} not found.");
+
                 return;
             }
 
@@ -61,13 +67,14 @@ class WebhookController extends Controller
             if ($existingPayment) {
                 DB::rollBack();
                 Log::info("Webhook ignored: Transaction {$paymentIntent->id} already recorded for Rental #{$rental->id}.");
+
                 return;
             }
 
             $totalCents = $rental->total_cents ?? 0;
             $newPaidCents = ($rental->paid_cents ?? 0) + $paymentIntent->amount;
-            $paymentStatus = $newPaidCents >= $totalCents 
-                ? PaymentStatus::PAID->value 
+            $paymentStatus = $newPaidCents >= $totalCents
+                ? PaymentStatus::PAID->value
                 : PaymentStatus::PARTIAL->value;
 
             $rental->update([
@@ -98,7 +105,7 @@ class WebhookController extends Controller
                 foreach ($assetsToAllocate as $asset) {
                     $asset->update([
                         'status' => AssetStatus::RENTED->value,
-                        'current_rental_id' => $rental->id
+                        'current_rental_id' => $rental->id,
                     ]);
                 }
             }
@@ -108,19 +115,19 @@ class WebhookController extends Controller
 
             try {
                 $recipientEmail = $rental->user?->email;
-                
+
                 if ($recipientEmail) {
                     Mail::to($recipientEmail)->queue(new OrderConfirmed($rental));
                 } else {
                     Log::error("Email failed: No user email attached to Rental #{$rental->id}");
                 }
-            } catch (\Exception $e) {
-                Log::error('Email queue failed: ' . $e->getMessage());
+            } catch (Exception $e) {
+                Log::error('Email queue failed: '.$e->getMessage());
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
-            Log::error("Webhook DB Error for Rental #{$rentalId}: " . $e->getMessage() . " on line " . $e->getLine());
+            Log::error("Webhook DB Error for Rental #{$rentalId}: ".$e->getMessage().' on line '.$e->getLine());
         }
     }
 }

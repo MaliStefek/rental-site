@@ -8,12 +8,12 @@ new #[Layout('layouts.app')] class extends Component
 {
     public Tool $tool;
     
-    public function mount($slug)
+    public function mount($slug): void
     {
         $this->tool = Tool::with(['prices', 'category'])->where('slug', $slug)->firstOrFail();
     }
 
-    public function addToBag()
+    public function addToBag(): void
     {
         // Guard: Prevent adding if stock is 0 (even if button was bypassed)
         if ($this->tool->available_stock <= 0) {

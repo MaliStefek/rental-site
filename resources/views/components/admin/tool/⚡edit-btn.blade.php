@@ -23,7 +23,7 @@ new class extends Component {
 
     public array $prices = [];
 
-    public function mount(Tool $tool)
+    public function mount(Tool $tool): void
     {
         $this->tool = $tool;
         $this->name = $tool->name;
@@ -46,14 +46,14 @@ new class extends Component {
         }
     }
 
-    public function addPriceRow()
+    public function addPriceRow(): void
     {
         if (count($this->prices) < count(PricingType::cases())) {
             $this->prices[] = ['type' => '', 'price' => null];
         }
     }
 
-    public function removePriceRow($index)
+    public function removePriceRow($index): void
     {
         unset($this->prices[$index]);
         $this->prices = array_values($this->prices);
@@ -63,12 +63,12 @@ new class extends Component {
     {
         try {
             return $this->image?->temporaryUrl();
-        } catch (\RuntimeException $e) {
+        } catch (\RuntimeException) {
             return null;
         }
     }
 
-    public function editTool()
+    public function editTool(): void
     {
         $this->validate([
             'name' => [

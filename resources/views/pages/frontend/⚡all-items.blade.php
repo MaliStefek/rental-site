@@ -25,14 +25,14 @@ new #[Layout('layouts.app')] class extends Component
     #[Url]
     public $maxPrice = '';
 
-    public function updated($property)
+    public function updated($property): void
     {
         if (in_array($property, ['search', 'selectedCategories', 'minPrice', 'maxPrice'])) {
             $this->resetPage();
         }
     }
 
-    public function clearFilters()
+    public function clearFilters(): void
     {
         $this->reset(['search', 'selectedCategories', 'minPrice', 'maxPrice']);
         $this->resetPage();
@@ -66,8 +66,8 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         if (!empty($this->minPrice) || !empty($this->maxPrice)) {
-            $minCents = !empty($this->minPrice) ? (int) round((float) $this->minPrice * 100) : null;
-            $maxCents = !empty($this->maxPrice) ? (int) round((float) $this->maxPrice * 100) : null;
+            $minCents = empty($this->minPrice) ? null : (int) round((float) $this->minPrice * 100);
+            $maxCents = empty($this->maxPrice) ? null : (int) round((float) $this->maxPrice * 100);
             
             $query->whereHas('prices', function ($q) use ($minCents, $maxCents) {
                 if ($minCents !== null) {

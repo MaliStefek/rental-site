@@ -4,7 +4,7 @@ use Livewire\Component;
 
 new class extends Component 
 {
-    public function nextStep() 
+    public function nextStep(): void 
     { 
         $this->dispatch('change-step', step: 4); 
     }

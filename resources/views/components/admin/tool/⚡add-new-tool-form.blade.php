@@ -40,7 +40,7 @@ new class extends Component {
     ])]
     public array $prices = [];
 
-    public function mount()
+    public function mount(): void
     {
         $this->categories = Category::all();
 
@@ -49,14 +49,14 @@ new class extends Component {
         ];
     }
 
-    public function addPriceRow()
+    public function addPriceRow(): void
     {
         if (count($this->prices) < count(PricingType::cases())) {
             $this->prices[] = ['type' => '', 'price' => null];
         }
     }
 
-    public function removePriceRow($index)
+    public function removePriceRow($index): void
     {
         unset($this->prices[$index]);
         $this->prices = array_values($this->prices);
@@ -66,12 +66,12 @@ new class extends Component {
     {
         try {
             return $this->image?->temporaryUrl();
-        } catch (\RuntimeException $e) {
+        } catch (\RuntimeException) {
             return null;
         }
     }
 
-    public function addTool()
+    public function addTool(): void
     {
         $this->authorize('create', Tool::class);
         $this->validate();
@@ -132,7 +132,7 @@ new class extends Component {
                 }
             });
 
-        } catch (UniqueConstraintViolationException $e) {
+        } catch (UniqueConstraintViolationException) {
             if ($path) {
                 Storage::disk('public')->delete($path);
             }

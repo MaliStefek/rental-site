@@ -11,7 +11,7 @@ new class extends Component
     use WithPagination;
 
     #[On('categoryAdded'), On('categoryUpdated'), On('categoryDeleted')]
-    public function refreshTable()
+    public function refreshTable(): void
     {
         unset($this->categories);
     }

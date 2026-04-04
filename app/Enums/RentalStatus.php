@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Enums;
 
 enum RentalStatus: string
@@ -13,6 +15,6 @@ enum RentalStatus: string
 
     public static function values(): array
     {
-        return array_map(fn(RentalStatus $status) => $status->value, self::cases());
+        return array_map(fn (RentalStatus $status) => $status->value, self::cases());
     }
 }

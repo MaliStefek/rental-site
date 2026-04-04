@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use App\Enums\AssetStatus;
+use Illuminate\Database\Eloquent\Model;
 
 class Asset extends Model
 {

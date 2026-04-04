@@ -10,7 +10,7 @@ new class extends Component {
     public $description = '';
     public $slug = '';
 
-    public function addCategory()
+    public function addCategory(): void
     {
         $slug = Str::slug($this->name);
 
@@ -30,7 +30,7 @@ new class extends Component {
             return;
         }
 
-        $category = Category::onlyTrashed()->whereRaw('LOWER(name) = ?', [strtolower($this->name)])->first();
+        $category = Category::onlyTrashed()->whereRaw('LOWER(name) = ?', [strtolower((string) $this->name)])->first();
         
         if ($category) {
             $category->restore();

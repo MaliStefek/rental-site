@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Enums;
 
 enum PaymentMethod: string
@@ -9,6 +11,6 @@ enum PaymentMethod: string
 
     public static function values(): array
     {
-        return array_map(fn(PaymentMethod $method) => $method->value, self::cases());
+        return array_map(fn (PaymentMethod $method) => $method->value, self::cases());
     }
 }

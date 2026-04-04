@@ -1,26 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
+use App\Enums\PaymentStatus;
+use App\Enums\RentalStatus;
+use Database\Factories\RentalFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Enums\RentalStatus;
-use App\Enums\PaymentStatus;
 
 class Rental extends Model
 {
-    /** @use HasFactory<\Database\Factories\RentalFactory> */
+    /** @use HasFactory<RentalFactory> */
     use HasFactory;
+
     use SoftDeletes;
 
     protected $fillable = [
         'user_id', 'status', 'start_at', 'end_at', 'returned_at',
         'subtotal_cents', 'late_fee_cents', 'damage_fee_cents',
         'total_cents', 'paid_cents', 'payment_status', 'notes',
-        'stripe_payment_intent_id'
+        'stripe_payment_intent_id',
     ];
 
     protected function casts(): array
@@ -41,7 +45,7 @@ class Rental extends Model
 
     public function payments(): HasMany
     {
-        return $this->hasMany(Payment::class); 
+        return $this->hasMany(Payment::class);
     }
 
     public function items(): HasMany

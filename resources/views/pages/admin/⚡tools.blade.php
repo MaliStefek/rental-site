@@ -12,13 +12,13 @@ new #[Layout('layouts.admin')] class extends Component
 
     public $search = '';
 
-    public function updatingSearch()
+    public function updatingSearch(): void
     {
         $this->resetPage();
     }
 
     #[On('toolAdded'), On('toolUpdated'), On('toolDeleted')]
-    public function refreshTools() {}
+    public function refreshTools(): void {}
 
     public function with(): array
     {

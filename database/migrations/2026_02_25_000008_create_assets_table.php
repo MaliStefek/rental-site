@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('assets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tool_id')->constrained()->onDelete('cascade');
-            $table->string('sku')->unique(); 
+            $table->string('sku')->unique();
             $table->string('serial_number')->nullable();
             $table->enum('status', AssetStatus::values())->default(AssetStatus::AVAILABLE->value);
             $table->text('internal_notes')->nullable();

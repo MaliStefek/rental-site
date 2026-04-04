@@ -14,7 +14,7 @@ new class extends Component {
     public $status;
     public $payment_status;
 
-    public function mount(Rental $rental)
+    public function mount(Rental $rental): void
     {
         $this->rental = $rental;
         $this->rental->load(['items.tool', 'user']);
@@ -23,7 +23,7 @@ new class extends Component {
         $this->payment_status = $this->rental->payment_status instanceof PaymentStatus ? $this->rental->payment_status->value : $this->rental->payment_status;
     }
 
-    public function updateRental(RentalManagementService $service)
+    public function updateRental(RentalManagementService $service): void
     {
         $this->rental->refresh();
 

@@ -11,16 +11,16 @@ new #[Layout('layouts.app')] class extends Component
     public $email = '';
     public $phone = '';
 
-    public function mount()
+    public function mount(): void
     {
         $info = session()->get('checkout_info', []);
-        $this->first_name = $info['first_name'] ?? (auth()->check() ? explode(' ', auth()->user()->name)[0] : '');
-        $this->last_name = $info['last_name'] ?? (auth()->check() ? explode(' ', auth()->user()->name, 2)[1] ?? '' : '');
+        $this->first_name = $info['first_name'] ?? (auth()->check() ? explode(' ', (string) auth()->user()->name)[0] : '');
+        $this->last_name = $info['last_name'] ?? (auth()->check() ? explode(' ', (string) auth()->user()->name, 2)[1] ?? '' : '');
         $this->email = $info['email'] ?? (auth()->check() ? auth()->user()->email : '');
         $this->phone = $info['phone'] ?? '';
     }
 
-    public function nextStep()
+    public function nextStep(): void
     {
         $validated = $this->validate([
             'first_name' => 'required|string|max:255',

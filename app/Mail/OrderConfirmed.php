@@ -1,15 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Mail;
 
 use App\Models\Rental;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Mail\Mailables\Attachment;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderConfirmed extends Mailable
 {
@@ -20,7 +22,7 @@ class OrderConfirmed extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Reservation Confirmation - Order #' . $this->rental->id,
+            subject: 'Reservation Confirmation - Order #'.$this->rental->id,
         );
     }
 
@@ -36,7 +38,7 @@ class OrderConfirmed extends Mailable
         $pdf = Pdf::loadView('emails.order-pdf', ['rental' => $this->rental]);
 
         return [
-            Attachment::fromData(fn () => $pdf->output(), 'Order_Receipt_' . $this->rental->id . '.pdf')
+            Attachment::fromData(fn () => $pdf->output(), 'Order_Receipt_'.$this->rental->id.'.pdf')
                 ->withMime('application/pdf'),
         ];
     }

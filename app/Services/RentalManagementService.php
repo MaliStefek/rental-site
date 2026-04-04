@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
-use App\Models\Rental;
-use App\Models\Asset;
-use App\Enums\RentalStatus;
-use App\Enums\PaymentStatus;
 use App\Enums\AssetStatus;
+use App\Enums\PaymentStatus;
+use App\Enums\RentalStatus;
+use App\Models\Asset;
+use App\Models\Rental;
 use Illuminate\Support\Facades\DB;
 
 class RentalManagementService
@@ -21,7 +23,7 @@ class RentalManagementService
                 'payment_status' => $newPaymentStatus->value,
             ]);
 
-            $shouldReleaseStock = 
+            $shouldReleaseStock =
                 ($newStatus === RentalStatus::RETURNED && $oldStatus !== RentalStatus::RETURNED->value) ||
                 ($newStatus === RentalStatus::CANCELLED && $oldStatus !== RentalStatus::CANCELLED->value);
 
@@ -33,7 +35,7 @@ class RentalManagementService
                 foreach ($assets as $asset) {
                     $asset->update([
                         'status' => AssetStatus::AVAILABLE->value,
-                        'current_rental_id' => null // Odstranimo povezavo z najemom
+                        'current_rental_id' => null, // Odstranimo povezavo z najemom
                     ]);
                 }
             }

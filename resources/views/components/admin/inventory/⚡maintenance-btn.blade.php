@@ -17,7 +17,7 @@ new class extends Component {
 
     public $setStatusToMaintenance = true;
 
-    public function mount(Asset $asset)
+    public function mount(Asset $asset): void
     {
         $this->asset = $asset;
         $this->maintenance_date = now()->format('Y-m-d');
@@ -27,7 +27,7 @@ new class extends Component {
         }
     }
 
-    public function logMaintenance()
+    public function logMaintenance(): void
     {
         $this->authorize('update', $this->asset->tool);
 

@@ -1,21 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
+use App\Enums\PaymentMethod;
+use Database\Factories\PaymentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Enums\PaymentMethod;
 
 class Payment extends Model
 {
-    /** @use HasFactory<\Database\Factories\PaymentFactory> */
+    /** @use HasFactory<PaymentFactory> */
     use HasFactory;
+
     use SoftDeletes;
 
     protected $fillable = [
-        'rental_id', 'amount_cents', 'payment_method', 'transaction_reference', 'paid_at'
+        'rental_id', 'amount_cents', 'payment_method', 'transaction_reference', 'paid_at',
     ];
 
     protected function casts(): array
@@ -28,7 +32,7 @@ class Payment extends Model
 
     public function rental(): BelongsTo
     {
-        return $this->belongsTo(Rental::class); 
+        return $this->belongsTo(Rental::class);
     }
 
     public function user(): ?User
