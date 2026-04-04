@@ -13,7 +13,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('rental_id')->nullable()->constrained()->restrictOnDelete();
             $table->unsignedBigInteger('amount_cents');
-            $table->enum('payment_method', PaymentMethod::values());
+            $table->string('payment_method');
             $table->string('transaction_reference')->unique();
             $table->dateTime('paid_at');
             $table->timestamps();

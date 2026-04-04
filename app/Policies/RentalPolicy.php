@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Policies;
 
 use App\Models\Rental;
@@ -14,7 +12,7 @@ class RentalPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->roles->contains('admin'); // only admins can see all rentals
+        return $user->isAdmin() || $user->isEmployee();
     }
 
     /**
@@ -22,12 +20,7 @@ class RentalPolicy
      */
     public function view(User $user, Rental $rental): bool
     {
-        if ($user->roles->contains('admin')) {
-            return true;
-        }
-
-        return $user->id === $rental->user_id;
-        // admins can view all, regular users can view their own rentals
+        return $user->isAdmin() || $user->isEmployee() || $user->id === $rental->user_id;
     }
 
     /**
@@ -35,7 +28,7 @@ class RentalPolicy
      */
     public function create(User $user): bool
     {
-        return true; // any logged-in user can rent tools
+        return true;
     }
 
     /**
@@ -43,8 +36,7 @@ class RentalPolicy
      */
     public function update(User $user, Rental $rental): bool
     {
-        // only the owner can edit, and only if it's still draft
-        return $user->id === $rental->user_id && $rental->status === 'draft';
+        return $user->isAdmin() || $user->isEmployee();
     }
 
     /**
@@ -52,8 +44,7 @@ class RentalPolicy
      */
     public function delete(User $user, Rental $rental): bool
     {
-        // only the owner can delete, only if draft
-        return $user->id === $rental->user_id && $rental->status === 'draft';
+        return $user->isAdmin();
     }
 
     /**
@@ -61,7 +52,7 @@ class RentalPolicy
      */
     public function restore(User $user, Rental $rental): bool
     {
-        return $user->roles->contains('admin'); // only admins can restore
+        return $user->isAdmin();
     }
 
     /**
@@ -69,6 +60,6 @@ class RentalPolicy
      */
     public function forceDelete(User $user, Rental $rental): bool
     {
-        return $user->roles->contains('admin'); // only admins
+        return $user->isAdmin();
     }
 }

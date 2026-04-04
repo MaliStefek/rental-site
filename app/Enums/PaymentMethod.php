@@ -8,6 +8,7 @@ enum PaymentMethod: string
 {
     case CARD = 'card';
     case TRANSFER = 'transfer';
+    case CASH = 'cash';
 
     public static function values(): array
     {
