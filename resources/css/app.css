@@ -1,10 +1,14 @@
 @import 'tailwindcss';
 @import '../../vendor/livewire/flux/dist/flux.css';
 
+@plugin 'flowbite/plugin';
+
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
 @source '../../vendor/livewire/flux/stubs/**/*.blade.php';
+
+@source '../../node_modules/flowbite/**/*.js';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -23,9 +27,24 @@
     --color-zinc-900: #171717;
     --color-zinc-950: #0a0a0a;
 
+    --color-primary: #FACC15;
+    --color-primary-dark: #CA8A04;
+    --color-dark: #1F2937;
+    --color-bg: #F9FAFB;
+    --color-text-main: #111827;
+
+    --color-surface-deep: #111820;
+    --color-surface-raised: #374151;
+
     --color-accent: var(--color-neutral-800);
     --color-accent-content: var(--color-neutral-800);
     --color-accent-foreground: var(--color-white);
+
+    --color-accent: var(--color-primary);
+    --color-accent-content: var(--color-text-main);
+
+    --color-danger: #dc2626;
+    --color-danger-content: #ffffff;
 }
 
 @layer theme {
@@ -64,3 +83,41 @@ select:focus[data-flux-control] {
 /* \[:where(&)\]:size-4 {
     @apply size-4;
 } */
+ 
+@layer base {
+    body {
+        background-color: var(--color-dark); 
+        
+        background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+        
+        background-size: 24px 24px; 
+    }
+}
+
+@layer components {
+    .btn-action-danger {
+        @apply !rounded-none font-black tracking-wider uppercase transition-all border-none hover:!bg-red-800 hover:!text-amber-950;
+    }
+
+    .btn-action-save {
+        @apply !rounded-none font-black tracking-wider uppercase transition-all border-none;
+        
+        @apply !bg-[var(--color-primary)] !text-[var(--color-text-main)];
+
+        @apply hover:!bg-[var(--color-primary-dark)] hover:!text-[var(--color-text-main)];
+    }
+
+    .btn-action-neutral {
+        @apply !rounded-none font-black tracking-wider uppercase transition-all border-none;
+        
+        @apply !bg-zinc-200 !text-zinc-700;
+
+        @apply hover:!bg-zinc-800 hover:!text-white;
+        
+        @apply active:scale-95;
+    }
+
+    .btn-action-subtle {
+        @apply !rounded-none font-bold uppercase tracking-wider transition-colors border-none !text-zinc-400 hover:!text-white hover:!bg-zinc-800;
+    }
+}

@@ -8,6 +8,8 @@ new class extends Component {
 
     public function deleteTool(): void
     {
+        $this->authorize('delete', $this->tool);
+        
         $this->tool->delete();
         $this->modal("confirm-tool-deletion-{$this->tool->id}")->close();
         $this->dispatch('toolDeleted', toolId: $this->tool->id);
@@ -16,29 +18,39 @@ new class extends Component {
 
 <section>
     <flux:modal.trigger name="confirm-tool-deletion-{{ $tool->id }}">
-        <flux:button size="sm" variant="danger" data-test="delete-tool-button">
+        <flux:button size="sm" icon="trash" class="btn-action-danger" variant="danger">
             {{ __('Delete') }}
         </flux:button>
     </flux:modal.trigger>
 
-    <flux:modal name="confirm-tool-deletion-{{ $tool->id }}" :show="$errors->isNotEmpty()" focusable class="max-w-lg pt-12">
-        <form method="POST" wire:submit.prevent="deleteTool" class="space-y-6">
+    <flux:modal name="confirm-tool-deletion-{{ $tool->id }}" :show="$errors->isNotEmpty()" focusable
+        class="max-w-lg !bg-dark !rounded-none border border-zinc-700 shadow-2xl">
+        <form method="POST" wire:submit.prevent="deleteTool" class="p-6">
             @csrf
-            
-            <div class="text-center">
-                <flux:heading size="lg">{{ __('Are you sure you want to delete :name?', ['name' => $tool->name]) }}</flux:heading>
-                <flux:subheading class="mt-2">
-                    {{ __('This action cannot be undone and will remove the tool from your catalog.') }}
+
+            <div class="text-center pb-2">
+                <flux:icon.exclamation-triangle class="w-12 h-12 text-danger mx-auto mb-4" />
+
+                <flux:heading size="lg" class="font-black text-danger uppercase tracking-tight">
+                    {{ __('Confirm Deletion') }}
+                </flux:heading>
+                
+                <flux:subheading class="text-sm font-bold text-gray-400 mt-2">
+                    {!! __('Are you sure you want to delete <strong class="text-text-main dark:text-white uppercase">:name</strong>?', ['name' => e($tool->name)]) !!}
+                    <br>
+                    {{ __('This action cannot be undone.') }}
                 </flux:subheading>
             </div>
 
-            <div class="flex justify-end space-x-2">
+            <div class="flex justify-end gap-3 pt-6 border-t border-zinc-800">
                 <flux:modal.close>
-                    <flux:button variant="filled">{{ __('Cancel') }}</flux:button>
+                    <flux:button variant="subtle" class="btn-action-subtle">
+                        {{ __('Cancel') }}
+                    </flux:button>
                 </flux:modal.close>
 
-                <flux:button variant="danger" type="submit">
-                    {{ __('Delete tool') }}
+                <flux:button variant="danger" type="submit" class="btn-action-danger" data-test="confirm-delete-tool-button">
+                    {{ __('Delete Tool') }}
                 </flux:button>
             </div>
         </form>

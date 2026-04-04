@@ -7,14 +7,11 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('rental_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('rental_id')->nullable()->constrained()->restrictOnDelete();
             $table->unsignedBigInteger('amount_cents');
             $table->enum('payment_method', PaymentMethod::values());
             $table->string('transaction_reference')->unique();
@@ -23,9 +20,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('payments');

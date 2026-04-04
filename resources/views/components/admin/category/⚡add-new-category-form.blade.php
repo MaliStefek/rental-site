@@ -56,32 +56,38 @@ new class extends Component {
 
 <section>
     <flux:modal.trigger name="confirm-category-addition">
-        <flux:button variant="primary" data-test="add-category-button">
+        <flux:button class="bg-primary hover:bg-accent text-dark border-none rounded-none font-black tracking-wider uppercase shadow-[4px_4px_0px_0px_#EAB308] hover:shadow-none hover:translate-y-1 hover:translate-x-1 transition-all" data-test="add-category-button">
             {{ __('Add new category') }}
         </flux:button>
     </flux:modal.trigger>
 
-    <flux:modal name="confirm-category-addition" :show="$errors->isNotEmpty()" focusable class="max-w-lg pt-12">
+    <flux:modal name="confirm-category-addition" :show="$errors->isNotEmpty()" focusable class="max-w-lg rounded-none border-t-4 border-primary shadow-2xl bg-white dark:bg-dark">
         <form wire:submit.prevent="addCategory" class="space-y-6">
             @csrf
-            <div>
-                <flux:heading size="lg">{{ __('Add New Category') }}</flux:heading>
+            
+            <div class="border-b-2 border-gray-100 dark:border-gray-800 pb-4">
+                <flux:heading size="lg" class="font-black text-text-main dark:text-white uppercase tracking-tight">
+                    {{ __('Add New Category') }}
+                </flux:heading>
 
-                <flux:subheading>
+                <flux:subheading class="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
                     {{ __('Please fill in the details for the new category you want to add.') }}
                 </flux:subheading>
             </div>
 
-            <flux:input wire:model="name" :label="__('Category Name')" />
+            <div class="space-y-4">
+                <flux:input wire:model="name" :label="__('Category Name')" class="rounded-none border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary" />
+                <flux:textarea wire:model="description" :label="__('Category Description')" class="rounded-none border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary" />
+            </div>
 
-            <flux:textarea wire:model="description" :label="__('Category Description')" />
-
-            <div class="flex justify-end space-x-2 rtl:space-x-reverse">
+            <div class="flex justify-end gap-3 pt-4 border-t-2 border-gray-100 dark:border-gray-800 mt-6">
                 <flux:modal.close>
-                    <flux:button variant="filled">{{ __('Cancel') }}</flux:button>
+                    <flux:button class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-text-main dark:text-white rounded-none font-bold uppercase tracking-wider transition-colors border-none">
+                        {{ __('Cancel') }}
+                    </flux:button>
                 </flux:modal.close>
 
-                <flux:button variant="primary" type="submit" data-test="confirm-add-category-button">
+                <flux:button type="submit" class="bg-dark hover:bg-text-main text-primary rounded-none font-black uppercase tracking-wider transition-colors border-none" data-test="confirm-add-category-button">
                     {{ __('Add new category') }}
                 </flux:button>
             </div>

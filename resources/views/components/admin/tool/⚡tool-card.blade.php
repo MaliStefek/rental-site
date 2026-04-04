@@ -4,6 +4,7 @@ use Livewire\Component;
 use App\Models\Tool;
 use Livewire\Attributes\On;
 use Livewire\WithFileUploads;
+use Illuminate\Support\Str;
 
 new class extends Component
 {
@@ -20,73 +21,65 @@ new class extends Component
     }
 };
 ?>
-<flux:card class="flex flex-col h-full transition-shadow hover:shadow-md overflow-hidden">
-    <div class="space-y-4 flex-1">
-        <div class="flex items-center justify-between">
-            <flux:text size="xs" class="uppercase tracking-widest font-semibold text-zinc-400">
-                {{ $tool->category?->name ?? __('Uncategorized') }}
-            </flux:text>
-            
-            @if (auth()->user()->isAdmin())
-                <flux:badge size="sm" :color="$tool->is_active ? 'green' : 'zinc'">
-                    {{ $tool->is_active ? __('Active') : __('Inactive') }}
-                </flux:badge>
-            @endif
-        </div>
 
-        <div class="relative group">
-            @if($tool->image_path)
-                <img src="{{ asset('storage/'.$tool->image_path) }}" alt="{{ $tool->name }}" class="w-full h-48 object-cover rounded-lg border border-zinc-100 dark:border-white/10" />
-            @else
-                <div class="w-full h-48 bg-zinc-50 dark:bg-white/5 border border-dashed border-zinc-200 dark:border-white/10 rounded-lg flex items-center justify-center">
-                    <flux:icon.camera class="text-zinc-300" />
-                </div>
-            @endif
-        </div>
+<div class="flex flex-col h-full rounded-2xl border border-zinc-200 bg-white overflow-hidden transition-all duration-300 hover:shadow-2xl group max-w-sm mx-auto w-full">
+    
+    <div class="relative w-full h-52 bg-white overflow-hidden shrink-0 border-b border-zinc-100">
+        @if($tool->image_path)
+            <img src="{{ asset('storage/'.$tool->image_path) }}" alt="{{ $tool->name }}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
+        @else
+            <div class="w-full h-full flex items-center justify-center">
+                <flux:icon.camera class="w-12 h-12 text-zinc-300" />
+            </div>
+        @endif
 
-        <div>
-            <flux:heading size="lg" class="font-bold tracking-tight">
-                {{ $tool->name }}
-            </flux:heading>
-            
-            @if($tool->description)
-                <flux:text class="line-clamp-2 mt-2">
-                    {{ $tool->description }}
-                </flux:text>
-            @else
-                <flux:text class="italic text-zinc-400 mt-2">
-                    {{ __('No description provided.') }}
-                </flux:text>
-            @endif
-        </div>
-
-        <div class="pt-2">
-            @if($tool->prices && $tool->prices->isNotEmpty())
-                <div class="flex flex-wrap gap-2">
-                    @foreach($tool->prices as $price)
-                        <flux:badge size="sm" variant="subtle" class="font-mono">
-                            <span class="text-zinc-500 mr-1">{{ ucfirst($price->pricing_type) }}:</span> 
-                            ${{ number_format($price->price_cents / 100, 2) }}
-                        </flux:badge>
-                    @endforeach
-                </div>
-            @else
-                <flux:text size="sm" class="italic text-zinc-400">
-                    {{ __('No pricing set.') }}
-                </flux:text>
-            @endif
-        </div>
-
-    </div>
-
-    <div class="mt-auto pt-5 border-t border-zinc-100 dark:border-white/10 flex flex-wrap justify-between items-center gap-y-3">
-        <div>
-            <livewire:admin.tool.csv-btn :tool="$tool" :wire:key="'csv-'.$tool->id" />
-        </div>
-
-        <div class="flex items-center gap-2">
-            <livewire:admin.tool.edit-btn :tool="$tool" :wire:key="'edit-'.$tool->id" />
-            <livewire:admin.tool.delete-btn :tool="$tool" :wire:key="'delete-'.$tool->id" />
+        <div class="absolute top-4 left-4 z-10">
+            <span class="{{ $tool->is_active ? 'bg-emerald-500' : 'bg-zinc-400' }} text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">
+                {{ $tool->is_active ? __('Active') : __('Inactive') }}
+            </span>
         </div>
     </div>
-</flux:card>
+
+    <div class="p-6 flex flex-col flex-1">
+        
+        <div class="text-[11px] font-black uppercase tracking-widest text-zinc-500 mb-2">
+            {{ $tool->category?->name ?? __('Uncategorized') }}
+        </div>
+
+        <h3 class="text-3xl font-black text-zinc-950 leading-tight mb-5 line-clamp-3">
+            {{ $tool->name }}
+        </h3>
+
+        @if($tool->description)
+            <p class="text-sm text-zinc-600 line-clamp-3 leading-relaxed mb-6">
+                {{ Str::words(strip_tags(Str::markdown($tool->description)), 20, '...') }}
+            </p>
+        @endif
+
+        <div class="mt-auto">
+            <div class="pt-5 border-t border-zinc-100 mb-6">
+                @if($tool->prices && $tool->prices->isNotEmpty())
+                    @php $primaryPrice = $tool->prices->sortByDesc('price_cents')->first(); @endphp
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-sm font-bold text-zinc-500">{{ __('up to') }}</span>
+                        <span class="text-4xl font-black text-primary italic tracking-tight">€{{ number_format($primaryPrice->price_cents / 100, 2) }}</span>
+                        <span class="text-sm font-bold text-primary uppercase tracking-wider">{{ __('/day') }}</span>
+                    </div>
+                @else
+                    <span class="text-xs font-bold text-zinc-400 uppercase tracking-widest">{{ __('Price Pending') }}</span>
+                @endif
+            </div>
+
+            <div class="flex items-stretch gap-2">
+                <div class="flex-1">
+                    <livewire:admin.tool.edit-btn :tool="$tool" :wire:key="'edit-'.$tool->id" />
+                </div>
+
+                <div class="flex gap-2 shrink-0">
+                    <livewire:admin.tool.csv-btn :tool="$tool" :wire:key="'csv-'.$tool->id" />
+                    <livewire:admin.tool.delete-btn :tool="$tool" :wire:key="'delete-'.$tool->id" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

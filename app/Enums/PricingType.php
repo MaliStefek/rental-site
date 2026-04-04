@@ -4,9 +4,9 @@ namespace App\Enums;
 
 enum PricingType: string
 {
-    case HOURLY = 'hourly';
-    case DAILY = 'daily';
-    case WEEKLY = 'weekly';
+    case DAILY_SHORT = '1-2 days';
+    case DAILY_MID = '3-5 days';
+    case DAILY_LONG = '6+ days';
 
     public static function values(): array
     {

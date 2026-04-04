@@ -25,4 +25,9 @@ class Asset extends Model
     {
         return $this->hasMany(ToolMaintenanceLog::class);
     }
+
+    public function currentRental()
+    {
+        return $this->belongsTo(Rental::class, 'current_rental_id');
+    }
 }

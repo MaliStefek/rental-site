@@ -38,46 +38,47 @@ new class extends Component {
                 });
             })
             ->latest()
-            ->paginate(15);
+            ->paginate(9);
     }
 }; ?>
 
-<section class="p-6 space-y-4">
+<section class="p-4 space-y-4 bg-dark">
     <div class="flex justify-between items-center">
-        <flux:heading size="xl" level="1">{{ __('Inventory Management') }}</flux:heading>
+        <flux:heading size="xl" level="1" class="text-primary">{{ __('Inventory Management') }}</flux:heading>
         
         <div class="w-1/3">
             <flux:input 
                 wire:model.live.debounce.300ms="search" 
                 icon="magnifying-glass" 
                 placeholder="Search tools, SKUs, or serial numbers..." 
+                class="!text-primary !bg-dark placeholder:text-primary/50"
             />
         </div>
     </div>
 
-    <flux:table :paginate="$this->assets">
+    <flux:table :paginate="$this->assets" class="text-primary">
         <flux:table.columns>
-            <flux:table.column>{{ __('Tool') }}</flux:table.column>
-            <flux:table.column>{{ __('SKU') }}</flux:table.column>
-            <flux:table.column>{{ __('Serial Number') }}</flux:table.column>
-            <flux:table.column>{{ __('Status') }}</flux:table.column>
-            <flux:table.column>{{ __('Added Date') }}</flux:table.column>
+            <flux:table.column class="!text-primary">{{ __('Tool') }}</flux:table.column>
+            <flux:table.column class="!text-primary">{{ __('SKU') }}</flux:table.column>
+            <flux:table.column class="!text-primary">{{ __('Serial Number') }}</flux:table.column>
+            <flux:table.column class="!text-primary">{{ __('Status') }}</flux:table.column>
+            <flux:table.column class="!text-primary">{{ __('Added Date') }}</flux:table.column>
 
-            <flux:table.column class="text-right">{{ __('Actions') }}</flux:table.column>
+            <flux:table.column class="text-right !text-primary">{{ __('Actions') }}</flux:table.column>
         </flux:table.columns>
 
         <flux:table.rows>
             @foreach ($this->assets as $asset)
-                <flux:table.row :key="$asset->id">
-                    <flux:table.cell class="font-medium text-zinc-800 dark:text-white">
+                <flux:table.row :key="$asset->id" class="border-b border-primary/20 hover:bg-primary/5">
+                    <flux:table.cell class="font-medium text-primary">
                         {{ $asset->tool->name ?? 'Unknown Tool' }}
                     </flux:table.cell>
 
                     <flux:table.cell>
-                        <flux:badge size="sm" variant="subtle" class="font-mono">{{ $asset->sku }}</flux:badge>
+                        <flux:badge size="sm" variant="subtle" class="font-mono text-primary bg-primary/10">{{ $asset->sku }}</flux:badge>
                     </flux:table.cell>
 
-                    <flux:table.cell>
+                    <flux:table.cell class="text-primary">
                         {{ $asset->serial_number ?? '-' }}
                     </flux:table.cell>
 
@@ -96,12 +97,14 @@ new class extends Component {
                         </flux:badge>
                     </flux:table.cell>
 
-                    <flux:table.cell class="text-zinc-500">
+                    <flux:table.cell class="text-primary/80">
                         {{ $asset->created_at->format('M d, Y') }}
                     </flux:table.cell>
 
                     <flux:table.cell>
                         <div class="flex items-center justify-end gap-2">
+                            <livewire:admin.inventory.history-btn :asset="$asset" :wire:key="'history-'.$asset->id" />
+                                
                             <livewire:admin.inventory.maintenance-btn :asset="$asset" :wire:key="'maintenance-'.$asset->id" />
                         
                             @if($asset->status !== AssetStatus::RETIRED)

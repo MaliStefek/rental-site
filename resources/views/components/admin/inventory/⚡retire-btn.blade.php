@@ -23,34 +23,45 @@ new class extends Component
 };
 ?>
 
-<div>
+<section>
     <flux:modal.trigger name="confirm-retire-{{ $asset->id }}">
-        <flux:button size="sm" variant="danger" icon="archive-box" aria-label="{{ __('Retire Unit') }}">
+        <flux:button variant="danger" size="sm" icon="archive-box" class="btn-action-danger" aria-label="{{ __('Retire Unit') }}">
             {{ __('Retire') }}
         </flux:button>
     </flux:modal.trigger>
 
-    <flux:modal name="confirm-retire-{{ $asset->id }}" class="max-w-lg pt-12">
+    <flux:modal name="confirm-retire-{{ $asset->id }}" class="max-w-lg pt-12 !rounded-none !bg-dark">
         <form wire:submit.prevent="retireAsset" class="space-y-6">
-            <div class="text-center">
-                <flux:heading size="lg">{{ __('Retire Unit') }}</flux:heading>
-                <flux:subheading class="mt-2 text-zinc-500">
+            
+            <div class="text-center pb-2">
+                <flux:icon.exclamation-triangle class="w-12 h-12 text-danger mx-auto mb-4" />
+
+                <flux:heading size="lg" class="font-black text-danger uppercase tracking-tight">
+                    {{ __('Confirm Retirement') }}
+                </flux:heading>
+                
+                <flux:subheading class="text-sm font-bold !text-zinc-400 mt-2">
                     {{ __('Are you sure you want to permanently retire unit ') }} 
-                    <strong class="font-mono text-zinc-800 dark:text-zinc-200">{{ $asset->sku }}</strong>?
+                    <strong class="font-mono text-white uppercase">{{ $asset->sku }}</strong>?
                     <br><br>
-                    {{ __('This will remove it from circulation so it can no longer be rented, but will preserve all of its historical data and maintenance logs.') }}
+                    <span class="!text-zinc-500 font-normal">
+                        {{ __('This will remove it from circulation so it can no longer be rented, but will preserve all of its historical data and maintenance logs.') }}
+                    </span>
                 </flux:subheading>
             </div>
 
-            <div class="flex justify-center space-x-2 mt-6">
+            <div class="flex justify-end gap-3 pt-6 border-t border-zinc-800">
                 <flux:modal.close>
-                    <flux:button variant="filled">{{ __('Cancel') }}</flux:button>
+                    <flux:button variant="subtle" class="btn-action-subtle">
+                        {{ __('Cancel') }}
+                    </flux:button>
                 </flux:modal.close>
 
-                <flux:button variant="danger" type="submit">
-                    {{ __('Yes, Retire Unit') }}
+                <flux:button variant="danger" type="submit" class="btn-action-danger">
+                    {{ __('Retire Unit') }}
                 </flux:button>
             </div>
+            
         </form>
     </flux:modal>
-</div>
+</section>

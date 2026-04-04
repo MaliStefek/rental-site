@@ -1,20 +1,17 @@
 <?php
 
 use Livewire\Component;
+use Livewire\Attributes\Layout;
 
-new class extends Component
+new #[Layout('layouts.admin')] class extends Component
 {
-    //
+    // ...
 };
 ?>
 
-<section class="space-y-6">
-    @include('partials.admin-heading')
-    
-    <x-pages::admin.layout :heading="__('Inventory')">
-        <h2 class="text-2xl font-semibold text-gray-900">{{ __('Admin Inventory') }}</h2>
-        <p class="text-gray-600">{{ __('Welcome to the admin inventory section. Here you can manage your rental site inventory tasks and settings.') }}</p>
-
-        <livewire:admin.inventory.inventory-table />
-    </x-pages::admin.layout>
-</section>
+<x-pages::admin.layout 
+    :heading="__('Admin Inventory')" 
+    :subheading="__('Manage your rental site inventory tasks and settings.')"
+>
+    <livewire:admin.inventory.inventory-table />
+</x-pages::admin.layout>

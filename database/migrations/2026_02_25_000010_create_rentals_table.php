@@ -7,14 +7,11 @@ use Illuminate\Support\Facades\Schema;
 use App\Enums\RentalStatus;
 
 return new class extends Migration {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('rentals', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('user_id')->constrained()->restrictOnDelete();
             $table->enum('status', RentalStatus::values())->index();
             $table->dateTime('start_at');
             $table->dateTime('end_at')->nullable();
@@ -26,7 +23,7 @@ return new class extends Migration {
             $table->unsignedBigInteger('total_cents');
             $table->unsignedBigInteger('paid_cents')->default(0);
 
-            $table->enum('payment_status', PaymentStatus::values())->default(PaymentStatus::UNPAID)->index();
+            $table->enum('payment_status', PaymentStatus::values())->default(PaymentStatus::UNPAID->value)->index();
             $table->text('notes')->nullable();
 
             $table->timestamps();
@@ -34,9 +31,6 @@ return new class extends Migration {
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('rentals');

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -21,22 +20,12 @@ class User extends Authenticatable
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
     use SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'two_factor_secret',
@@ -44,11 +33,6 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -57,9 +41,6 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * Get the user's initials
-     */
     public function initials(): string
     {
         return Str::of($this->name)
@@ -76,13 +57,12 @@ class User extends Authenticatable
 
     public function rentals(): HasMany
     {
-        return $this->hasMany(Rental::class); // nullable foreign keys are okay
+        return $this->hasMany(Rental::class);
     }
 
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
-        // Be aware: some payments may belong to deleted rentals (rental_id null)
     }
 
     public function rentalItems(): HasMany
@@ -95,12 +75,12 @@ class User extends Authenticatable
         return $this->belongsToMany(Role::class);
     }
 
-    public function hasRole($roleName)
+    public function hasRole(string $roleName): bool
     {
-        return $this->roles()->where('name', $roleName)->exists();
+        return $this->roles->contains('name', $roleName);
     }
 
-    public function isAdmin()
+    public function isAdmin(): bool
     {
         return $this->hasRole('admin');
     }
@@ -108,10 +88,5 @@ class User extends Authenticatable
     public function isEmployee(): bool
     {
         return $this->hasRole('employee');
-    }
-
-    public function isCustomer(): bool
-    {
-        return $this->hasRole('customer');
     }
 }

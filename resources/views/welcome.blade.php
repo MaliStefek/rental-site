@@ -1,5 +1,0 @@
-<x-layouts::app :title="__('Home')">
-    <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl">
-        Hello World
-    </div>
-</x-layouts::app>

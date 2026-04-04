@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tool extends Model
@@ -26,11 +25,6 @@ class Tool extends Model
         return $this->belongsTo(Category::class);
     }
 
-    public function inventory(): HasOne
-    {
-        return $this->hasOne(ToolInventory::class);
-    }
-
     public function prices(): HasMany
     {
         return $this->hasMany(ToolPrice::class);
@@ -44,5 +38,14 @@ class Tool extends Model
     public function assets()
     {
         return $this->hasMany(Asset::class);
+    }
+
+    public function getAvailableStockAttribute()
+    {
+        if (array_key_exists('available_assets_count', $this->getAttributes())) {
+            return $this->available_assets_count;
+        }
+        
+        return $this->assets()->where('status', 'available')->count();
     }
 }
