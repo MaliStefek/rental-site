@@ -5,63 +5,18 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Rental;
-use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 
 class RentalController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(): void
+    public function downloadInvoice(Rental $rental)
     {
-        //
-    }
+        Gate::authorize('view', $rental);
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create(): void
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request): void
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Rental $rental): void
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Rental $rental): void
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Rental $rental): void
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Rental $rental): void
-    {
-        //
+        $pdf = Pdf::loadView('emails.order-pdf', ['rental' => $rental]);
+        
+        return $pdf->download('Invoice_Order_' . $rental->id . '.pdf');
     }
 }

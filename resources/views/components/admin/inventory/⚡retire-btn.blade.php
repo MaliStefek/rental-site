@@ -10,7 +10,11 @@ new class extends Component
 
     public function retireAsset(): void
     {
-        $this->authorize('retire', $this->asset);
+        if (! $this->asset->tool) {
+            abort(404, 'Associated tool not found.');
+        }
+
+        $this->authorize('update', $this->asset->tool);
 
         $this->asset->update([
             'status' => AssetStatus::RETIRED

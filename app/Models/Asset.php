@@ -6,10 +6,12 @@ namespace App\Models;
 
 use App\Enums\AssetStatus;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Asset extends Model
 {
-    protected $fillable = ['tool_id', 'sku', 'serial_number', 'status', 'internal_notes'];
+    use HasFactory;
+    protected $fillable = ['tool_id', 'sku', 'serial_number', 'status', 'internal_notes','current_rental_id'];
 
     protected function casts(): array
     {

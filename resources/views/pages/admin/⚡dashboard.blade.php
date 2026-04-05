@@ -1,20 +1,20 @@
 <?php
 
 use Livewire\Component;
-use Livewire\Attributes\Layout;
 use App\Models\Rental;
 use App\Models\Payment;
 use App\Models\Asset;
 use App\Models\Tool;
 use App\Enums\AssetStatus;
 use App\Enums\RentalStatus;
+use Livewire\Attributes\Layout;
 
 new #[Layout('layouts.admin')] class extends Component
 {
     public function with(): array
     {
         $totalRevenueCents = Payment::sum('amount_cents');
-
+        
         $activeRentals = Rental::whereIn('status', [
             RentalStatus::CONFIRMED->value, 
             RentalStatus::ACTIVE->value, 
@@ -22,8 +22,8 @@ new #[Layout('layouts.admin')] class extends Component
         ])->count();
 
         $inMaintenance = Asset::where('status', AssetStatus::MAINTENANCE->value)->count();
-
-        $recentRentals = Rental::with('user')->latest()->take(5)->get();
+        
+        $recentRentals = Rental::with('user')->latest()->take(8)->get();
 
         $lowStockTools = Tool::with(['category'])->withCount(['assets as available_assets_count' => function($query) {
             $query->where('status', AssetStatus::AVAILABLE->value);
@@ -40,12 +40,11 @@ new #[Layout('layouts.admin')] class extends Component
 };
 ?>
 
-<x-pages::admin.layout 
-    :heading="__('Admin Dashboard')" 
+<x-pages::admin.layout
+    :heading="__('Admin Dashboard')"
     :subheading="__('Live overview of your rental operations and site performance.')"
 >
     <div class="space-y-8">
-        
         {{-- TOP METRICS ROW --}}
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             {{-- Revenue Card --}}
@@ -83,13 +82,14 @@ new #[Layout('layouts.admin')] class extends Component
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
             {{-- RECENT ORDERS TABLE --}}
             <div class="lg:col-span-2 bg-dark border-2 border-gray-800 flex flex-col">
                 <div class="p-6 border-b-2 border-gray-800 flex justify-between items-center bg-text-main">
                     <h2 class="font-black text-lg text-white uppercase tracking-widest">{{ __('Recent Reservations') }}</h2>
-                    <a href="{{ route('rentals') }}" class="text-[10px] font-black text-primary uppercase tracking-widest hover:text-white transition-colors">{{ __('View All') }}</a>
+                    {{-- FIXED ROUTE HERE: Change 'admin.rentals.index' if your route name is slightly different --}}
+                    <a href="{{ route('admin.rentals.index') }}" class="text-[10px] font-black text-primary uppercase tracking-widest hover:text-white transition-colors">{{ __('View All') }}</a>
                 </div>
+                
                 <div class="flex-1 p-0 overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -134,33 +134,42 @@ new #[Layout('layouts.admin')] class extends Component
                 </div>
             </div>
 
-            {{-- LOW STOCK WARNINGS --}}
-            <div class="lg:col-span-1 bg-dark border-2 border-gray-800 flex flex-col">
-                <div class="p-6 border-b-2 border-gray-800 bg-text-main flex items-center gap-3">
-                    <flux:icon.exclamation-triangle class="w-5 h-5 text-primary" />
-                    <h2 class="font-black text-lg text-white uppercase tracking-widest">{{ __('Low Stock Alerts') }}</h2>
-                </div>
-                <div class="p-6 flex-1 space-y-4">
-                    @forelse($lowStockTools as $tool)
-                        <div class="flex items-center justify-between border-b border-gray-800 pb-4 last:border-0 last:pb-0">
-                            <div>
-                                <h4 class="font-bold text-sm text-white uppercase tracking-tight">{{ $tool->name }}</h4>
-                                <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mt-1">{{ $tool->category->name ?? 'Tools' }}</p>
+            {{-- RIGHT COLUMN (WARNINGS & MAINTENANCE) --}}
+            <div class="lg:col-span-1 flex flex-col gap-8">
+                
+                {{-- LOW STOCK WARNINGS --}}
+                <div class="bg-dark border-2 border-gray-800 flex flex-col">
+                    <div class="p-6 border-b-2 border-gray-800 bg-text-main flex items-center gap-3">
+                        <flux:icon.exclamation-triangle class="w-5 h-5 text-primary" />
+                        <h2 class="font-black text-lg text-white uppercase tracking-widest">{{ __('Low Stock Alerts') }}</h2>
+                    </div>
+                    
+                    <div class="p-6 flex-1 space-y-4">
+                        @forelse($lowStockTools as $tool)
+                            <div class="flex items-center justify-between border-b border-gray-800 pb-4 last:border-0 last:pb-0">
+                                <div>
+                                    <h4 class="font-bold text-sm text-white uppercase tracking-tight">{{ $tool->name }}</h4>
+                                    <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mt-1">{{ $tool->category->name ?? 'Tools' }}</p>
+                                </div>
+                                <div class="flex flex-col items-end">
+                                    {{-- FIXED VARIABLE NAME HERE --}}
+                                    <span class="text-xl font-black {{ $tool->available_assets_count === 0 ? 'text-red-500' : 'text-primary' }}">{{ $tool->available_assets_count }}</span>
+                                    <span class="text-[9px] font-black uppercase tracking-widest text-gray-500">{{ __('Available') }}</span>
+                                </div>
                             </div>
-                            <div class="flex flex-col items-end">
-                                <span class="text-xl font-black {{ $tool->available_stock === 0 ? 'text-red-500' : 'text-primary' }}">{{ $tool->available_stock }}</span>
-                                <span class="text-[9px] font-black uppercase tracking-widest text-gray-500">{{ __('Available') }}</span>
+                        @empty
+                            <div class="flex flex-col items-center justify-center py-10 text-center">
+                                <flux:icon.check-circle class="w-10 h-10 text-green-500 mb-3" />
+                                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ __('All tools are well stocked.') }}</p>
                             </div>
-                        </div>
-                    @empty
-                        <div class="flex flex-col items-center justify-center py-10 text-center">
-                            <flux:icon.check-circle class="w-10 h-10 text-green-500 mb-3" />
-                            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ __('All tools are well stocked.') }}</p>
-                        </div>
-                    @endforelse
+                        @endforelse
+                    </div>
                 </div>
-            </div>
 
+                {{-- UPCOMING MAINTENANCE COMPONENT --}}
+                <livewire:admin.upcoming-maintenance />
+                
+            </div>
         </div>
     </div>
 </x-pages::admin.layout>

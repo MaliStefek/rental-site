@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace App\Http\Controllers;
@@ -12,6 +11,7 @@ use App\Mail\OrderConfirmed;
 use App\Models\Asset;
 use App\Models\Payment;
 use App\Models\Rental;
+use App\Services\StripeService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -59,20 +59,20 @@ class WebhookController extends Controller
             if (! $rental) {
                 DB::rollBack();
                 Log::error("Webhook error: Rental #{$rentalId} not found.");
-
                 return;
             }
 
             $existingPayment = Payment::where('transaction_reference', $paymentIntent->id)->exists();
+
             if ($existingPayment) {
                 DB::rollBack();
                 Log::info("Webhook ignored: Transaction {$paymentIntent->id} already recorded for Rental #{$rental->id}.");
-
                 return;
             }
 
             $totalCents = $rental->total_cents ?? 0;
             $newPaidCents = ($rental->paid_cents ?? 0) + $paymentIntent->amount;
+
             $paymentStatus = $newPaidCents >= $totalCents
                 ? PaymentStatus::PAID->value
                 : PaymentStatus::PARTIAL->value;
@@ -99,7 +99,17 @@ class WebhookController extends Controller
                     ->get();
 
                 if ($assetsToAllocate->count() < $item->quantity) {
-                    Log::critical("CRITICAL: Out of stock during allocation for Rental #{$rental->id}, Tool #{$item->tool_id}");
+                    Log::critical("CRITICAL: Out of stock during allocation for Rental #{$rental->id}, Tool #{$item->tool_id}. Initiating automatic refund and rolling back.");
+                    
+                    try {
+                        app(StripeService::class)->refundPayment($paymentIntent->id, $paymentIntent->amount);
+                        Log::info("Refund successfully initiated for PaymentIntent {$paymentIntent->id} due to allocation failure.");
+                    } catch (Exception $refundException) {
+                        Log::critical("CRITICAL: Failed to refund PaymentIntent {$paymentIntent->id} automatically: " . $refundException->getMessage());
+                    }
+                    
+                    DB::rollBack();
+                    return; 
                 }
 
                 foreach ($assetsToAllocate as $asset) {
@@ -115,7 +125,6 @@ class WebhookController extends Controller
 
             try {
                 $recipientEmail = $rental->user?->email;
-
                 if ($recipientEmail) {
                     Mail::to($recipientEmail)->queue(new OrderConfirmed($rental));
                 } else {

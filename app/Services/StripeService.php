@@ -58,4 +58,29 @@ class StripeService
             return false;
         }
     }
+
+    public function refundPayment(string $intentId, int $amountCents): bool
+    {
+        if ($intentId === '' || $intentId === '0') {
+            return false;
+        }
+
+        if ($amountCents <= 0) {
+            Log::error('Stripe refund failed: Invalid amount (' . $amountCents . ')');
+            return false;
+        }
+
+        try {
+            \Stripe\Refund::create([
+                'payment_intent' => $intentId,
+                'amount' => $amountCents,
+            ]);
+            
+            return true;
+        } catch (Exception $e) {
+            Log::error('Stripe refund failed: '.$e->getMessage());
+            
+            throw $e;
+        }
+    }
 }

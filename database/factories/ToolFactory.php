@@ -24,7 +24,6 @@ class ToolFactory extends Factory
             'name' => $name,
             'description' => $this->faker->optional()->paragraph(),
             'category_id' => Category::factory(),
-            'sku' => strtoupper(Str::random(8)),
             'slug' => Str::slug($name),
             'is_active' => $this->faker->boolean(80),
             'image_path' => null,

@@ -6,8 +6,8 @@ use App\Models\Category;
 use Illuminate\Support\Str;
 
 new class extends Component {
-
     public Category $category;
+
     public $name;
     public $description;
 
@@ -37,14 +37,13 @@ new class extends Component {
         $this->category->update([
             'name' => $this->name,
             'description' => $this->description,
-            'slug' => Str::slug($this->name),
         ]);
 
         $this->dispatch('categoryUpdated', categoryId: $this->category->id);
-
         $this->modal("confirm-category-edit-{$this->category->id}")->close();
     }
-}; ?>
+};
+?>
 
 <section>
     <flux:modal.trigger name="confirm-category-edit-{{ $category->id }}">
@@ -53,12 +52,11 @@ new class extends Component {
         </flux:button>
     </flux:modal.trigger>
 
-    <flux:modal name="confirm-category-edit-{{ $category->id }}" :show="$errors->isNotEmpty()" focusable 
+    <flux:modal name="confirm-category-edit-{{ $category->id }}" :show="$errors->isNotEmpty()" focusable
         class="max-w-lg !bg-dark !rounded-none border border-zinc-700 shadow-2xl">
-        
         <form method="POST" wire:submit.prevent="editCategory" class="space-y-6 p-2">
             @csrf
-            
+
             <div class="border-b border-zinc-800 pb-4">
                 <flux:heading size="lg" class="font-black text-white uppercase tracking-tight">
                     {{ __('Edit Category') }}
@@ -72,7 +70,6 @@ new class extends Component {
                 <div class="[&>label]:!text-zinc-400 [&_input]:!bg-zinc-800/50 [&_input]:!border-zinc-700 [&_input]:!text-white [&_input]:!rounded-none focus-within:[&_input]:!border-primary">
                     <flux:input wire:model="name" :label="__('Category Name')" />
                 </div>
-
                 <div class="[&>label]:!text-zinc-400 [&_textarea]:!bg-zinc-800/50 [&_textarea]:!border-zinc-700 [&_textarea]:!text-white [&_textarea]:!rounded-none focus-within:[&_textarea]:!border-primary">
                     <flux:textarea wire:model="description" :label="__('Category Description')" rows="5" />
                 </div>

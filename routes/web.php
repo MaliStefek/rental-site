@@ -3,6 +3,7 @@
 use App\Http\Controllers\WebhookController;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\RentalController;
 
 Route::redirect('/', 'home');
 Route::livewire('home', 'pages::frontend.home')->name('home');
@@ -18,6 +19,11 @@ Route::livewire('/my-rentals', 'pages::frontend.my-rentals')->name('rentals')->m
 Route::post('/stripe/webhook', [WebhookController::class, 'handle'])
     ->withoutMiddleware(ValidateCsrfToken::class);
 
+Route::middleware('auth')->group(function () {
+    Route::get('/rentals/{rental}/invoice', [RentalController::class, 'downloadInvoice'])
+    ->name('rentals.invoice')
+    ->can('view', 'rental');
+});
 require __DIR__.'/admin.php';
 
 require __DIR__.'/settings.php';

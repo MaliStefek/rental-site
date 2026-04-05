@@ -80,6 +80,8 @@ new class extends Component {
                     <p class="text-xs font-bold text-gray-300 uppercase">{{ ucfirst($rental->payment_status->value ?? $rental->payment_status) }}</p>
                 </div>
             </div>
+
+            <flux:button href="{{ route('rentals.invoice', $rental) }}">{{ __('Download Invoice') }}</flux:button>
         </div>
     </flux:modal>
 </div>

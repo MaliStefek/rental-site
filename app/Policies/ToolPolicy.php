@@ -22,8 +22,7 @@ class ToolPolicy
      */
     public function view(User $user, Tool $tool): bool
     {
-        return $tool->is_active || $user->roles->contains('admin');
-        // anyone can see active tools, admins can see all
+        return $tool->is_active || $user->isAdmin();
     }
 
     /**
@@ -31,7 +30,7 @@ class ToolPolicy
      */
     public function create(User $user): bool
     {
-        return $user->roles->contains('admin'); // only admins can add tools
+        return $user->isAdmin();
     }
 
     /**
@@ -39,15 +38,12 @@ class ToolPolicy
      */
     public function update(User $user, Tool $tool): bool
     {
-        return $user->roles->contains('admin'); // only admins can edit
+        return $user->isAdmin();
     }
-
-    /**
-     * Determine whether the user can delete the model.
-     */
+    
     public function delete(User $user, Tool $tool): bool
     {
-        return $user->roles->contains('admin'); // only admins can delete
+        return $user->isAdmin();
     }
 
     /**
@@ -55,7 +51,7 @@ class ToolPolicy
      */
     public function restore(User $user, Tool $tool): bool
     {
-        return $user->roles->contains('admin'); // only admins
+        return $user->isAdmin();
     }
 
     /**
@@ -63,6 +59,6 @@ class ToolPolicy
      */
     public function forceDelete(User $user, Tool $tool): bool
     {
-        return $user->roles->contains('admin'); // only admins
+        return $user->isAdmin(); // only admins
     }
 }
