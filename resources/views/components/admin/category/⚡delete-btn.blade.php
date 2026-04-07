@@ -10,10 +10,13 @@ new class extends Component {
     {
         $this->authorize('delete', $this->category);
 
+        if ($this->category->tools()->exists()) {
+            $this->addError('category', __('Cannot delete this category because it contains active equipment. Reassign or delete the equipment first.'));
+            return;
+        }
+
         $this->category->delete();
-
         $this->modal("confirm-category-deletion-{$this->category->id}")->close();
-
         $this->dispatch('categoryDeleted', categoryId: $this->category->id);
     }
 }; ?>

@@ -45,11 +45,8 @@
                             {{ __('My Rentals') }}
                         </flux:navbar.item>
                         <livewire:frontend.cart />
-                    @if (auth()->user()->isAdmin())
-                        <flux:navbar.item 
-                            href="{{ route('admin') }}" 
-                            class="!p-0 bg-transparent border-none text-primary hover:text-primary-dark font-black uppercase tracking-widest text-xs transition-colors"
-                        >
+                    @if (auth()->user()->isAdmin() || auth()->user()->isEmployee())
+                        <flux:navbar.item href="{{ route('admin') }}" class="!p-0 bg-transparent border-none !text-white hover:!text-primary font-black uppercase tracking-widest text-xs transition-colors">
                             {{ __('Admin') }}
                         </flux:navbar.item>
                     @endif
@@ -116,10 +113,10 @@
                                 {{ __('Settings') }}
                             </flux:menu.item>
                             
-                            @if (auth()->user()->isAdmin())
-                                <flux:menu.item :href="route('admin')" icon="shield-check" wire:navigate class="uppercase font-black tracking-widest text-xs text-primary hover:!bg-primary/10 !rounded-none">
-                                    {{ __('Admin Panel') }}
-                                </flux:menu.item>
+                            @if (auth()->user()->isAdmin() || auth()->user()->isEmployee())
+                                <flux:navbar.item href="{{ route('admin') }}" class="!p-0 bg-transparent border-none text-primary hover:text-primary-dark font-black uppercase tracking-widest text-xs transition-colors">
+                                    {{ __('Admin') }}
+                                </flux:navbar.item>
                             @endif
                         </div>
 

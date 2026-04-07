@@ -49,37 +49,14 @@ new #[Layout('layouts.app')] class extends Component
     #[Computed]
     public function tools()
     {
-        $query = Tool::query()
-            ->with(['prices', 'category'])
-            ->withCount(['assets as available_assets_count' => fn($q) => $q->where('status', AssetStatus::AVAILABLE->value)])
-            ->where('is_active', true);
-
-        if (!empty($this->search)) {
-            $query->where(function ($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('description', 'like', '%' . $this->search . '%');
-            });
-        }
-
-        if (!empty($this->selectedCategories)) {
-            $query->whereIn('category_id', $this->selectedCategories);
-        }
-
-        if (!empty($this->minPrice) || !empty($this->maxPrice)) {
-            $minCents = empty($this->minPrice) ? null : (int) round((float) $this->minPrice * 100);
-            $maxCents = empty($this->maxPrice) ? null : (int) round((float) $this->maxPrice * 100);
-            
-            $query->whereHas('prices', function ($q) use ($minCents, $maxCents) {
-                if ($minCents !== null) {
-                    $q->where('price_cents', '>=', $minCents);
-                }
-                if ($maxCents !== null) {
-                    $q->where('price_cents', '<=', $maxCents);
-                }
-            });
-        }
-
-        return $query->latest()->paginate(12);
+        return Tool::with(['prices', 'category'])
+            ->withCount(['assets as available_assets_count' => function($q) {
+                $q->where('status', \App\Enums\AssetStatus::AVAILABLE->value);
+            }])
+            ->where('is_active', true)
+            ->when($this->search, fn($q) => $q->where('name', 'like', '%'.$this->search.'%'))
+            ->when($this->category, fn($q) => $q->where('category_id', $this->category))
+            ->paginate(12);
     }
 };
 ?>

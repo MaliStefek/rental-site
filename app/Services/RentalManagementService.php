@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Rental;
@@ -19,27 +21,25 @@ class RentalManagementService
     {
         DB::transaction(function () use ($rental, $newStatus) {
             $lockedRental = Rental::where('id', $rental->id)->lockForUpdate()->firstOrFail();
-            $oldStatus = $lockedRental->status instanceof RentalStatus ? $lockedRental->status->value : $lockedRental->status;
+            $oldStatus = $lockedRental->status;
             
             $lockedRental->update([
                 'status' => $newStatus->value,
             ]);
             
             $shouldReleaseStock =
-                ($newStatus === RentalStatus::RETURNED && $oldStatus !== RentalStatus::RETURNED->value) ||
-                ($newStatus === RentalStatus::CANCELLED && $oldStatus !== RentalStatus::CANCELLED->value);
-                
+                ($newStatus === RentalStatus::RETURNED && $oldStatus !== RentalStatus::RETURNED) ||
+                ($newStatus === RentalStatus::CANCELLED && $oldStatus !== RentalStatus::CANCELLED);
+                 
             if ($shouldReleaseStock) {
-                $assets = Asset::where('current_rental_id', $lockedRental->id)->lockForUpdate()->get();
-                foreach ($assets as $asset) {
-                    $asset->update([
+                Asset::where('current_rental_id', $lockedRental->id)
+                    ->update([
                         'status' => AssetStatus::AVAILABLE->value,
                         'current_rental_id' => null
                     ]);
-                }
             }
 
-            if ($newStatus === RentalStatus::CANCELLED && $oldStatus !== RentalStatus::CANCELLED->value) {
+            if ($newStatus === RentalStatus::CANCELLED && $oldStatus !== RentalStatus::CANCELLED) {
                 if ($lockedRental->paid_cents > 0 && $lockedRental->stripe_payment_intent_id) {
                     Payment::create([
                         'rental_id' => $lockedRental->id,
@@ -49,12 +49,20 @@ class RentalManagementService
                         'paid_at' => now(),
                     ]);
 
+                    $originalPaidCents = $lockedRental->paid_cents;
+
                     $lockedRental->update([
                         'payment_status' => PaymentStatus::REFUNDED->value,
                         'paid_cents' => 0
                     ]);
 
-                    app(StripeService::class)->refundPayment($lockedRental->stripe_payment_intent_id, (int) $lockedRental->paid_cents);
+                    // Execute network call ONLY after database guarantees commit
+                    DB::afterCommit(function () use ($lockedRental, $originalPaidCents) {
+                        app(StripeService::class)->refundPayment(
+                            $lockedRental->stripe_payment_intent_id, 
+                            $originalPaidCents
+                        );
+                    });
                 }
             }
         });
@@ -74,7 +82,11 @@ class RentalManagementService
             ]);
 
             $newPaid = $lockedRental->payments()->sum('amount_cents');
-            $newPaymentStatus = $newPaid >= $lockedRental->total_cents ? PaymentStatus::PAID : PaymentStatus::PARTIAL;
+            $newPaymentStatus = match(true) {
+                $newPaid >= $lockedRental->total_cents => PaymentStatus::PAID,
+                $newPaid > 0 => PaymentStatus::PARTIAL,
+                default => PaymentStatus::UNPAID,
+            };
 
             $lockedRental->update([
                 'paid_cents' => $newPaid,
@@ -93,7 +105,11 @@ class RentalManagementService
             $lockedRental = Rental::where('id', $rental->id)->lockForUpdate()->firstOrFail();
 
             $newTotal = $lockedRental->subtotal_cents + $lateFeeCents + $damageFeeCents;
-            $newPaymentStatus = $lockedRental->paid_cents >= $newTotal ? PaymentStatus::PAID : PaymentStatus::PARTIAL;
+            $newPaymentStatus = match(true) {
+                $lockedRental->paid_cents >= $newTotal => PaymentStatus::PAID,
+                $lockedRental->paid_cents > 0 => PaymentStatus::PARTIAL,
+                default => PaymentStatus::UNPAID,
+            };
 
             $lockedRental->update([
                 'late_fee_cents' => $lateFeeCents,
@@ -112,14 +128,18 @@ class RentalManagementService
 
         DB::transaction(function () use ($rental, $lateFeeCents, $damageFeeCents, $needsMaintenance) {
             $lockedRental = Rental::where('id', $rental->id)->lockForUpdate()->firstOrFail();
-            $currentStatus = $lockedRental->status instanceof RentalStatus ? $lockedRental->status->value : $lockedRental->status;
+            $currentStatus = $lockedRental->status;
 
-            if ($currentStatus === RentalStatus::RETURNED->value || $currentStatus === RentalStatus::CANCELLED->value) {
-                throw new InvalidArgumentException("Cannot process return for rental in {$currentStatus} status.");
+            if ($currentStatus === RentalStatus::RETURNED || $currentStatus === RentalStatus::CANCELLED) {
+                throw new InvalidArgumentException("Cannot process return for rental in {$currentStatus->value} status.");
             }
             
             $newTotal = $lockedRental->subtotal_cents + $lateFeeCents + $damageFeeCents;
-            $newPaymentStatus = $lockedRental->paid_cents >= $newTotal ? PaymentStatus::PAID : PaymentStatus::PARTIAL;
+            $newPaymentStatus = match(true) {
+                $lockedRental->paid_cents >= $newTotal => PaymentStatus::PAID,
+                $lockedRental->paid_cents > 0 => PaymentStatus::PARTIAL,
+                default => PaymentStatus::UNPAID,
+            };
 
             $lockedRental->update([
                 'status' => RentalStatus::RETURNED->value,
@@ -130,18 +150,15 @@ class RentalManagementService
                 'payment_status' => $newPaymentStatus->value
             ]);
 
-            $assets = Asset::where('current_rental_id', $lockedRental->id)->lockForUpdate()->get();
-            
             $targetAssetStatus = ($damageFeeCents > 0 || $needsMaintenance) 
                 ? AssetStatus::MAINTENANCE->value 
                 : AssetStatus::AVAILABLE->value;
 
-            foreach ($assets as $asset) {
-                $asset->update([
+            Asset::where('current_rental_id', $lockedRental->id)
+                ->update([
                     'status' => $targetAssetStatus,
                     'current_rental_id' => null
                 ]);
-            }
         });
     }
 }

@@ -4,14 +4,14 @@ use Livewire\Component;
 use Carbon\Carbon;
 use App\Models\Tool;
 use App\Enums\PricingType;
+use App\Services\PricingService;
 
-new class extends Component 
-{
+new class extends Component {
     public array $cart = [];
     public $startDate;
     public $endDate;
 
-    public function mount(): void
+    public function mount(): void 
     {
         $this->cart = session()->get('cart', []);
         $dates = session()->get('checkout_dates', []);
@@ -19,20 +19,32 @@ new class extends Component
         $this->endDate = $dates['end'] ?? null;
     }
 
-    public function updateQuantity($cartKey, $amount): void
+    public function updateQuantity($cartKey, $amount, \App\Services\AvailabilityService $availabilityService): void 
     {
-        if (!isset($this->cart[$cartKey])) {
+        if (!isset($this->cart[$cartKey])) return;
+
+        $toolId = $this->cart[$cartKey]['tool_id'];
+        $newQuantity = $this->cart[$cartKey]['quantity'] + $amount;
+
+        $startAt = $this->startDate ? Carbon::parse($this->startDate) : now();
+        $endAt = $this->endDate ? Carbon::parse($this->endDate) : now()->addDay();
+
+        if ($newQuantity > 0 && !$availabilityService->isAvailable($toolId, $startAt, $endAt, $newQuantity)) {
+            $this->addError('cart', __('Not enough stock available for these selected dates.'));
             return;
         }
-        $this->cart[$cartKey]['quantity'] += $amount;
-        if ($this->cart[$cartKey]['quantity'] <= 0) {
+
+        if ($newQuantity <= 0) {
             unset($this->cart[$cartKey]);
+        } else {
+            $this->cart[$cartKey]['quantity'] = $newQuantity;
         }
+
         session()->put('cart', $this->cart);
         $this->dispatch('cart-updated');
     }
 
-    public function removeItem($cartKey): void
+    public function removeItem($cartKey): void 
     {
         if (isset($this->cart[$cartKey])) {
             unset($this->cart[$cartKey]);
@@ -41,55 +53,43 @@ new class extends Component
         }
     }
 
-    public function getRentalDaysProperty()
+    public function getRentalDaysProperty() 
     {
-        if (!$this->startDate || !$this->endDate) {
-            return 1;
-        }
+        if (!$this->startDate || !$this->endDate) return 1;
+
         try {
             $start = Carbon::parse($this->startDate)->startOfDay();
             $end = Carbon::parse($this->endDate)->startOfDay();
-            if ($end->lessThan($start)) {
-                return 1;
-            }
-            return max(1, $start->diffInDays($end) + 1);
+
+            if ($end->lessThan($start)) return 1;
+
+            return max(1, (int) $start->diffInDays($end) + 1);
         } catch (\Exception) {
             return 1;
         }
     }
 
-    public function getCurrentTierProperty()
+    public function getCartItemsWithPricesProperty(PricingService $pricingService): array 
     {
-        $days = $this->rentalDays;
-        if ($days >= 6) {
-            return PricingType::DAILY_LONG->value;
-        }
-        if ($days >= 3) {
-            return PricingType::DAILY_MID->value;
-        }
-        return PricingType::DAILY_SHORT->value;
-    }
-
-    /**
-     * @return mixed[][]
-     */
-    public function getCartItemsWithPricesProperty(): array
-    {
-        $tier = $this->currentTier;
-        $toolIds = collect($this->cart)->pluck('tool_id')->toArray();
+        $startAt = $this->startDate ? Carbon::parse($this->startDate) : now();
+        $endAt = $this->endDate ? Carbon::parse($this->endDate) : now()->addDay();
         
+        $toolIds = collect($this->cart)->pluck('tool_id')->toArray();
         $tools = Tool::with('prices')->whereIn('id', $toolIds)->get()->keyBy('id');
-
+        
         $items = [];
         foreach ($this->cart as $key => $item) {
             $tool = $tools->get($item['tool_id']);
-            
             if ($tool) {
-                $priceObj = $tool->prices->where('pricing_type', $tier)->first() 
-                         ?? $tool->prices->first();
-                         
-                $unitPrice = $priceObj ? $priceObj->price_cents : 0;
+                $unitPrice = $pricingService->calculateDailyRate($tool, $startAt, $endAt);
                 
+                $days = $this->rentalDays;
+                $tier = match(true) {
+                    $days <= 2 => PricingType::DAILY_SHORT->value,
+                    $days <= 5 => PricingType::DAILY_MID->value,
+                    default => PricingType::DAILY_LONG->value,
+                };
+
                 $items[$key] = array_merge($item, [
                     'dynamic_price_cents' => $unitPrice,
                     'pricing_type' => $tier
@@ -97,24 +97,24 @@ new class extends Component
             } else {
                 $items[$key] = array_merge($item, [
                     'dynamic_price_cents' => $item['unit_price_cents'] ?? 0,
-                    'pricing_type' => $tier
+                    'pricing_type' => '1-2 days'
                 ]);
             }
         }
         return $items;
     }
 
-    public function getDailySubtotalProperty()
+    public function getDailySubtotalProperty() 
     {
         return collect($this->cartItemsWithPrices)->sum(fn($item) => ($item['dynamic_price_cents'] ?? 0) * $item['quantity']);
     }
 
-    public function getTotalProperty()
+    public function getTotalProperty() 
     {
         return $this->dailySubtotal * $this->rentalDays;
     }
 
-    public function nextStep(): void
+    public function nextStep(): void 
     {
         $this->validate([
             'startDate' => ['required', 'date', 'after_or_equal:today'],
@@ -127,9 +127,9 @@ new class extends Component
                 $this->cart[$key]['pricing_type'] = $item['pricing_type'];
             }
         }
-
         session()->put('cart', $this->cart);
         session()->put('checkout_dates', ['start' => $this->startDate, 'end' => $this->endDate]);
+        
         $this->dispatch('cart-updated');
         $this->dispatch('change-step', step: 2);
     }
@@ -149,7 +149,12 @@ new class extends Component
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
             <div class="lg:col-span-2 space-y-6">
                 <h3 class="font-black uppercase tracking-widest text-lg text-white bg-dark p-4 border-l-4 border-primary">{{ __('1. Review Items & Select Dates') }}</h3>
-                
+                @error('cart')
+                    <div class="bg-red-500/10 border border-red-500 text-red-500 font-bold p-4 uppercase tracking-widest text-sm">
+                        {{ $message }}
+                    </div>
+                @enderror
+
                 @foreach($this->cartItemsWithPrices as $key => $item)
                     <div wire:key="cart-item-{{ $key }}" class="flex flex-col sm:flex-row gap-6 p-6 bg-dark border-2 border-gray-800 relative group">
                         <div class="w-full sm:w-32 aspect-square bg-text-main border-2 border-gray-800 p-2 shrink-0">
@@ -183,35 +188,21 @@ new class extends Component
 
                 <div class="bg-dark border-2 border-gray-800 p-8 mt-8">
                     <h4 class="font-black uppercase tracking-widest text-white mb-4">{{ __('Select Rental Dates') }}</h4>
-                    
                     <div class="flex flex-col sm:flex-row items-center gap-4 w-full">
                         <div class="relative w-full">
                             <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
                                 <flux:icon.calendar class="w-5 h-5 text-gray-500" />
                             </div>
-                            <input 
-                                type="date" 
-                                wire:model.live="startDate" 
-                                min="{{ date('Y-m-d') }}"
-                                class="block w-full pl-12 pr-4 py-4 bg-text-main border-2 {{ $errors->has('startDate') ? 'border-red-500' : 'border-gray-700 focus:border-primary' }} text-white font-black uppercase tracking-widest focus:ring-0 transition-colors cursor-pointer dark:[color-scheme:dark]"
-                            >
+                            <input type="date" wire:model.live="startDate" min="{{ date('Y-m-d') }}" class="block w-full pl-12 pr-4 py-4 bg-text-main border-2 {{ $errors->has('startDate') ? 'border-red-500' : 'border-gray-700 focus:border-primary' }} text-white font-black uppercase tracking-widest focus:ring-0 transition-colors cursor-pointer dark:[color-scheme:dark]" >
                         </div>
-                        
                         <span class="text-gray-500 font-black uppercase text-xs">{{ __('to') }}</span>
-                        
                         <div class="relative w-full">
                             <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
                                 <flux:icon.calendar class="w-5 h-5 text-gray-500" />
                             </div>
-                            <input 
-                                type="date" 
-                                wire:model.live="endDate" 
-                                min="{{ $startDate ?? date('Y-m-d') }}"
-                                class="block w-full pl-12 pr-4 py-4 bg-text-main border-2 {{ $errors->has('endDate') ? 'border-red-500' : 'border-gray-700 focus:border-primary' }} text-white font-black uppercase tracking-widest focus:ring-0 transition-colors cursor-pointer dark:[color-scheme:dark]"
-                            >
+                            <input type="date" wire:model.live="endDate" min="{{ $startDate ?? date('Y-m-d') }}" class="block w-full pl-12 pr-4 py-4 bg-text-main border-2 {{ $errors->has('endDate') ? 'border-red-500' : 'border-gray-700 focus:border-primary' }} text-white font-black uppercase tracking-widest focus:ring-0 transition-colors cursor-pointer dark:[color-scheme:dark]" >
                         </div>
                     </div>
-
                     @error('startDate') <span class="block mt-4 text-red-500 text-xs font-bold uppercase tracking-widest">{{ $message }}</span> @enderror
                     @error('endDate') <span class="block mt-1 text-red-500 text-xs font-bold uppercase tracking-widest">{{ $message }}</span> @enderror
                 </div>
@@ -219,22 +210,14 @@ new class extends Component
 
             <div class="lg:col-span-1 bg-dark border-2 border-gray-800 p-8 shadow-[12px_12px_0px_0px_var(--color-primary)] sticky top-32">
                 <h3 class="font-black uppercase tracking-widest text-xl text-white mb-6 border-b-2 border-gray-800 pb-4">{{ __('Order Summary') }}</h3>
-                
-                <div class="flex justify-between items-center text-sm font-bold text-gray-400 mb-4">
-                    <span class="uppercase tracking-widest">{{ __('Pricing Tier') }}</span>
-                    <span class="text-primary bg-primary/10 px-2 py-1 border border-primary/20">{{ $this->currentTier }}</span>
-                </div>
-
                 <div class="flex justify-between items-center text-sm font-bold text-gray-400 mb-8">
                     <span class="uppercase tracking-widest">{{ __('Duration') }}</span>
                     <span class="text-white">{{ $this->rentalDays }} {{ $this->rentalDays === 1 ? __('day') : __('days') }}</span>
                 </div>
-
                 <div class="flex justify-between items-center text-sm font-bold text-gray-400 mb-8">
                     <span class="uppercase tracking-widest">{{ __('Total Cost') }}</span>
                     <span class="text-white text-xl font-black">€{{ number_format($this->total / 100, 2) }}</span>
                 </div>
-                
                 <button wire:click="nextStep" class="w-full bg-primary hover:bg-white text-dark font-black uppercase tracking-widest py-5 px-6 transition-all shadow-[6px_6px_0px_0px_#ffffff] hover:shadow-none hover:translate-y-[6px] hover:translate-x-[6px] flex items-center justify-center gap-2">
                     {{ __('Next Step') }}
                     <flux:icon.arrow-right class="w-5 h-5" />

@@ -19,6 +19,16 @@ class Category extends Model
 
     protected $fillable = ['name', 'slug', 'description'];
 
+    protected static function booted(): void
+    {
+        static::deleting(function ($category) {
+            if (!$category->isForceDeleting()) {
+                $category->slug = $category->slug . '-deleted-' . time();
+                $category->saveQuietly(); 
+            }
+        });
+    }
+
     public function tools(): HasMany
     {
         return $this->hasMany(Tool::class);

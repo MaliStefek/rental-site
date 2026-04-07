@@ -25,7 +25,7 @@ class AvailabilityService
         $tool = Tool::withCount(['assets' => function ($query) {
             $query->whereNotIn('status', ['maintenance', 'retired']);
         }])->findOrFail($toolId);
-
+        
         $totalInventory = $tool->assets_count;
 
         $overlappingReservedQuantity = RentalItem::where('tool_id', $toolId)
@@ -36,11 +36,10 @@ class AvailabilityService
                     RentalStatus::OVERDUE->value
                 ])
                 ->where(function ($q) use ($startAt, $endAt) {
-                    $q->whereBetween('start_at', [$startAt, $endAt])
-                      ->orWhereBetween('end_at', [$startAt, $endAt])
-                      ->orWhere(function ($q2) use ($startAt, $endAt) {
-                          $q2->where('start_at', '<=', $startAt)
-                             ->where('end_at', '>=', $endAt);
+                    $q->where('start_at', '<', $endAt)
+                      ->where(function ($sub) use ($startAt) {
+                          $sub->where('end_at', '>', $startAt)
+                              ->orWhere('status', RentalStatus::OVERDUE->value);
                       });
                 });
             })

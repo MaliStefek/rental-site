@@ -11,50 +11,56 @@ new class extends Component {
     public Tool $tool;
     public $csvFile;
 
-    public function import(): void
+    public function import(): void 
     {
+        $this->authorize('update', $this->tool);
+        
         $this->validate([
             'csvFile' => 'required|mimes:csv,txt|max:1024',
         ]);
 
         $path = $this->csvFile->getRealPath();
         $file = fopen($path, 'r');
-        
+
         try {
             $firstLine = fgets($file);
             $delimiter = (substr_count($firstLine, ';') > substr_count($firstLine, ',')) ? ';' : ',';
             rewind($file);
+            fgetcsv($file, 0, $delimiter);
 
-            $count = DB::transaction(function () use ($file, $delimiter): int {
-                fgetcsv($file, 0, $delimiter);
+            $records = [];
+            $now = now();
 
-                $count = 0;
-                while (($row = fgetcsv($file, 0, $delimiter)) !== FALSE) {
-                    if (empty($row[0])) {
-                        continue;
-                    }
+            while (($row = fgetcsv($file, 0, $delimiter)) !== FALSE) {
+                if (empty(trim($row[0]))) continue;
 
-                    $this->tool->assets()->firstOrCreate(
-                        ['sku' => trim($row[0])],
-                        [
-                            'serial_number'  => isset($row[1]) ? trim($row[1]) : null,
-                            'internal_notes' => isset($row[2]) ? trim($row[2]) : null,
-                            'status'         => 'available'
-                        ]
-                    );
-                    $count++;
+                $records[] = [
+                    'tool_id' => $this->tool->id,
+                    'sku' => trim($row[0]),
+                    'serial_number' => isset($row[1]) ? trim($row[1]) : null,
+                    'internal_notes' => isset($row[2]) ? trim($row[2]) : null,
+                    'status' => \App\Enums\AssetStatus::AVAILABLE->value,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+
+                if (count($records) >= 500) {
+                    \App\Models\Asset::upsert($records, ['sku'], ['serial_number', 'internal_notes', 'status', 'updated_at']);
+                    $records = [];
                 }
-                return $count;
-            });
+            }
 
+            if (count($records) > 0) {
+                \App\Models\Asset::upsert($records, ['sku'], ['serial_number', 'internal_notes', 'status', 'updated_at']);
+            }
+            
         } finally {
             fclose($file);
         }
 
         $this->reset('csvFile');
         $this->modal("import-assets-{$this->tool->id}")->close();
-        
-        $this->dispatch('assetsImported');
+        $this->dispatch('inventoryUpdated');
     }
 }; ?>
 

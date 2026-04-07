@@ -18,8 +18,8 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! Auth::check() || ! Auth::user()->isAdmin()) {
-            abort(403);
+        if (! Auth::check() || (! Auth::user()->isAdmin() && ! Auth::user()->isEmployee())) {
+            abort(403, 'Unauthorized access.');
         }
 
         return $next($request);

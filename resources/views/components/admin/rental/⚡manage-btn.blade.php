@@ -59,17 +59,21 @@ new class extends Component {
     {
         $this->rental->refresh();
         $this->authorize('update', $this->rental);
+        
+        $this->lateFee = str_replace(',', '.', (string) $this->lateFee);
+        $this->damageFee = str_replace(',', '.', (string) $this->damageFee);
+
         $this->validate([
             'lateFee' => 'required|numeric|min:0',
             'damageFee' => 'required|numeric|min:0',
         ]);
 
-        $lateCents = (int) round((float) str_replace(',', '.', (string) $this->lateFee) * 100);
-        $damageCents = (int) round((float) str_replace(',', '.', (string) $this->damageFee) * 100);
-
+        $lateCents = (int) round((float) $this->lateFee * 100);
+        $damageCents = (int) round((float) $this->damageFee * 100);
+        
         $service->updateFees($this->rental, $lateCents, $damageCents);
         
-        $this->dispatch(AppEvents::RENTAL_UPDATED->value);
+        $this->dispatch(\App\Enums\AppEvents::RENTAL_UPDATED->value);
         $this->loadData();
         session()->flash('success_fees', __('Fees updated successfully.'));
     }

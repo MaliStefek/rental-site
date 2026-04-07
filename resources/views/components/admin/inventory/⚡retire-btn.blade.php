@@ -14,14 +14,17 @@ new class extends Component
             abort(404, 'Associated tool not found.');
         }
 
+        if ($this->asset->status === AssetStatus::RENTED || $this->asset->current_rental_id !== null) {
+            $this->addError('asset', __('Cannot retire an asset that is currently rented out.'));
+            return;
+        }
+
         $this->authorize('update', $this->asset->tool);
-
         $this->asset->update([
-            'status' => AssetStatus::RETIRED
+            'status' => AssetStatus::RETIRED->value,
         ]);
-
-        $this->dispatch('inventoryUpdated');
         
+        $this->dispatch('inventoryUpdated');
         $this->modal("confirm-retire-{$this->asset->id}")->close();
     }
 };

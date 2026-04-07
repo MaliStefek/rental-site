@@ -24,6 +24,24 @@ class Tool extends Model implements HasMedia
         'is_active' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(function ($tool) {
+            \Illuminate\Support\Facades\Cache::forget('home.featured_tool_ids');
+        });
+
+        static::deleted(function ($tool) {
+            \Illuminate\Support\Facades\Cache::forget('home.featured_tool_ids');
+        });
+
+        static::deleting(function ($tool) {
+            if (!$tool->isForceDeleting()) {
+                $tool->slug = $tool->slug . '-deleted-' . time();
+                $tool->saveQuietly();
+            }
+        });
+    }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
@@ -45,12 +63,17 @@ class Tool extends Model implements HasMedia
     }
 
     public function getAvailableStockAttribute()
-    {
-        if (array_key_exists('available_assets_count', $this->getAttributes())) {
-            return $this->available_assets_count;
-        }
-        return $this->assets()->where('status', 'available')->count();
+{
+    if (array_key_exists('available_assets_count', $this->getAttributes())) {
+        return $this->available_assets_count;
     }
+    
+    if ($this->relationLoaded('assets')) {
+        return $this->assets->where('status', \App\Enums\AssetStatus::AVAILABLE)->count();
+    }
+    
+    return $this->assets()->where('status', \App\Enums\AssetStatus::AVAILABLE->value)->count();
+}
 
     public function registerMediaCollections(): void
     {

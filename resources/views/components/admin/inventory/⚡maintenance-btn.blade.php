@@ -31,6 +31,11 @@ new class extends Component {
     {
         $this->authorize('update', $this->asset->tool);
 
+        if ($this->setStatusToMaintenance && ($this->asset->status === AssetStatus::RENTED || $this->asset->current_rental_id !== null)) {
+            $this->addError('setStatusToMaintenance', __('Cannot pull an actively rented asset into maintenance.'));
+            return;
+        }
+
         $this->validate([
             'cost' => 'required|numeric|min:0',
             'description' => 'nullable|string|max:1000',

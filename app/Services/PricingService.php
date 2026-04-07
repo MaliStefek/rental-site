@@ -8,6 +8,7 @@ use App\Models\Tool;
 use App\Enums\PricingType;
 use Carbon\Carbon;
 use InvalidArgumentException;
+use RuntimeException;
 
 class PricingService
 {
@@ -21,23 +22,45 @@ class PricingService
             throw new InvalidArgumentException('End date must be on or after start date.');
         }
 
-        $days = max(1, $startAt->copy()->startOfDay()->diffInDays($endAt->copy()->startOfDay()));
-        
-        $tier = PricingType::DAILY_LONG;
-        if ($days <= 2) {
-            $tier = PricingType::DAILY_SHORT;
-        } elseif ($days <= 5) {
-            $tier = PricingType::DAILY_MID;
+        if (!$tool->relationLoaded('prices')) {
+            $tool->load('prices');
         }
 
-        $priceModel = $tool->prices->where('pricing_type', $tier->value)->first();
+        $days = max(1, (int) $startAt->copy()->startOfDay()->diffInDays($endAt->copy()->startOfDay()) + 1);
         
-        if (!$priceModel) {
-            $priceModel = $tool->prices->sortByDesc('price_cents')->first();
-        }
-        
-        $dailyRateCents = $priceModel ? $priceModel->price_cents : 0;
+        $tier = match(true) {
+            $days <= 2 => PricingType::DAILY_SHORT,
+            $days <= 5 => PricingType::DAILY_MID,
+            default => PricingType::DAILY_LONG,
+        };
 
-        return $dailyRateCents * $days * $quantity;
+        $priceModel = $tool->prices->where('pricing_type', $tier->value)->first()
+                   ?? $tool->prices->sortByDesc('price_cents')->first();
+        
+        if (!$priceModel || $priceModel->price_cents <= 0) {
+            throw new RuntimeException("Critical: Tool #{$tool->id} lacks valid pricing.");
+        }
+
+        return $priceModel->price_cents * $days * $quantity;
+    }
+
+    public function calculateDailyRate(Tool $tool, Carbon $startAt, Carbon $endAt): int
+    {
+        $days = max(1, (int) $startAt->copy()->startOfDay()->diffInDays($endAt->copy()->startOfDay()) + 1);
+        
+        $tier = match(true) {
+            $days <= 2 => PricingType::DAILY_SHORT,
+            $days <= 5 => PricingType::DAILY_MID,
+            default => PricingType::DAILY_LONG,
+        };
+
+        if (!$tool->relationLoaded('prices')) {
+            $tool->load('prices');
+        }
+
+        $priceModel = $tool->prices->where('pricing_type', $tier->value)->first()
+                   ?? $tool->prices->sortByDesc('price_cents')->first();
+                   
+        return $priceModel ? $priceModel->price_cents : 0;
     }
 }
