@@ -51,11 +51,6 @@ class User extends Authenticatable
             ->implode('');
     }
 
-    public function tools(): HasMany
-    {
-        return $this->hasMany(Tool::class);
-    }
-
     public function rentals(): HasMany
     {
         return $this->hasMany(Rental::class);

@@ -1,6 +1,7 @@
 <?php
 
 use Livewire\Component;
+use Livewire\Attributes\Computed;
 use Carbon\Carbon;
 use App\Models\Tool;
 use App\Enums\PricingType;
@@ -53,7 +54,8 @@ new class extends Component {
         }
     }
 
-    public function getRentalDaysProperty() 
+    #[Computed]
+    public function rentalDays() 
     {
         if (!$this->startDate || !$this->endDate) return 1;
 
@@ -69,7 +71,8 @@ new class extends Component {
         }
     }
 
-    public function getCartItemsWithPricesProperty(PricingService $pricingService): array 
+    #[Computed]
+    public function cartItemsWithPrices(PricingService $pricingService): array 
     {
         $startAt = $this->startDate ? Carbon::parse($this->startDate) : now();
         $endAt = $this->endDate ? Carbon::parse($this->endDate) : now()->addDay();
@@ -104,12 +107,14 @@ new class extends Component {
         return $items;
     }
 
-    public function getDailySubtotalProperty() 
+    #[Computed]
+    public function dailySubtotal() 
     {
         return collect($this->cartItemsWithPrices)->sum(fn($item) => ($item['dynamic_price_cents'] ?? 0) * $item['quantity']);
     }
 
-    public function getTotalProperty() 
+    #[Computed]
+    public function total() 
     {
         return $this->dailySubtotal * $this->rentalDays;
     }

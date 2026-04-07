@@ -95,6 +95,7 @@ class WebhookController extends Controller
                         ->where('status', AssetStatus::AVAILABLE->value)
                         ->orderBy('id')
                         ->limit($item->quantity)
+                        ->lockForUpdate()
                         ->pluck('id');
 
                     if ($assetIds->count() < $item->quantity) {

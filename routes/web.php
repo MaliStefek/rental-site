@@ -17,7 +17,8 @@ Route::livewire('/checkout', 'pages::frontend.checkout')->name('checkout');
 Route::livewire('/my-rentals', 'pages::frontend.my-rentals')->name('rentals')->middleware('auth');
 
 Route::post('/stripe/webhook', [WebhookController::class, 'handle'])
-    ->withoutMiddleware(ValidateCsrfToken::class);
+    ->withoutMiddleware(ValidateCsrfToken::class)
+    ->middleware('throttle:60,1');
 
 Route::middleware('auth')->group(function () {
     Route::get('/rentals/{rental}/invoice', [RentalController::class, 'downloadInvoice'])

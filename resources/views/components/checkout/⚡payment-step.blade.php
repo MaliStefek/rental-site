@@ -71,14 +71,13 @@ new class extends Component {
                 
                 if (!$tool || !$tool->is_active) {
                     session()->flash('error', __("Sorry, {$item['name']} is no longer available in our catalog."));
-                    $this->redirect(route('cart'), navigate: true);
+                    $this->redirect(route('checkout'), navigate: true);
                     return; 
                 }
 
                 if (!$availabilityService->isAvailable((int)$tool->id, $startAt, $endAt, (int)$item['quantity'])) {
                     session()->flash('error', __("Sorry, {$item['name']} is no longer available for these dates."));
-                    $this->redirect(route('cart'), navigate: true);
-                    return; 
+                    $this->redirect(route('checkout'), navigate: true);
                 }
             }
 
@@ -154,31 +153,24 @@ new class extends Component {
 
     public function confirmOrder()
     {
-        if (!$this->draftRentalId) return;
-
-        try {
-            $rental = Rental::find($this->draftRentalId);
-            
-            if ($rental) {
-                Stripe::setApiKey(config('services.stripe.secret'));
-                $intent = PaymentIntent::retrieve($rental->stripe_payment_intent_id);
-                
-                $rental->refresh();
-                $currentStatus = $rental->status instanceof RentalStatus ? $rental->status->value : $rental->status;
-
-                if ($intent->status === 'succeeded' && $currentStatus === RentalStatus::DRAFT->value) {
-                    session()->flash('status', __('Payment received! Finalizing your reservation...'));
-                    return $this->redirect('/', navigate: true);
-                }
-            }
-        } catch (\Throwable $e) {
-            Log::error("Frontend confirmation error: " . $e->getMessage());
+        $rental = \App\Models\Rental::find($this->draftRentalId);
+        
+        if (!$rental) {
+            session()->flash('error', __('Rental not found.'));
+            return $this->redirect(route('checkout'), navigate: true);
         }
 
-        session()->forget(['cart', 'checkout_dates', 'checkout_info', 'draft_rental_id']);
-        $this->dispatch('cart-updated');
-        session()->flash('status', __('Order confirmed.'));
-        return $this->redirect('/', navigate: true);
+        $rental->refresh();
+        
+        if ($rental->status->value === RentalStatus::CONFIRMED->value) {
+            session()->forget(['cart', 'checkout_dates', 'checkout_info', 'draft_rental_id']);
+            $this->dispatch('cart-updated');
+            
+            session()->flash('status', __('Payment received! Finalizing your reservation...'));
+            return $this->redirect('/', navigate: true);
+        }
+        
+        session()->flash('status', __('Waiting for payment confirmation from the server. Please wait a moment...'));
     }
 };
 ?>

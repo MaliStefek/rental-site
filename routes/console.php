@@ -17,6 +17,7 @@ Schedule::call(function () {
     $rentalService = app(RentalManagementService::class);
     
     $overdueRentals = Rental::whereIn('status', [RentalStatus::ACTIVE->value, RentalStatus::OVERDUE->value])
+        ->whereNotNull('end_at')
         ->where('end_at', '<', now()->startOfDay())
         ->get();
         
@@ -39,4 +40,4 @@ Schedule::call(function () {
             ]);
         }
     }
-})->daily()->description('Mark expired rentals as overdue and apply cumulative daily late fees');
+})->daily()->name('process-overdue-rentals')->withoutOverlapping()->description('Mark expired rentals as overdue and apply cumulative daily late fees');

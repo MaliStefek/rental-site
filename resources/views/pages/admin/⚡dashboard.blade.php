@@ -10,7 +10,8 @@ use App\Enums\RentalStatus;
 use Carbon\Carbon;
 use Livewire\Attributes\Layout;
 
-new #[Layout('layouts.admin')] class extends Component {
+new #[Layout('layouts.admin')] class extends Component 
+{
     
     /**
      * Helper to get status colors without needing a method on the Enum.
@@ -28,7 +29,7 @@ new #[Layout('layouts.admin')] class extends Component {
     public function with(): array
     {
         // 1. Performance Metrics
-        $revenue = Payment::sum('amount_cents') / 100;
+        $revenue = Payment::where('amount_cents', '>', 0)->sum('amount_cents') / 100;
         
         $activeRentals = Rental::whereIn('status', [
             RentalStatus::CONFIRMED->value, 

@@ -55,7 +55,7 @@ new #[Layout('layouts.app')] class extends Component
             }])
             ->where('is_active', true)
             ->when($this->search, fn($q) => $q->where('name', 'like', '%'.$this->search.'%'))
-            ->when($this->category, fn($q) => $q->where('category_id', $this->category))
+            ->when(!empty($this->selectedCategories), fn($q) => $q->whereIn('category_id', $this->selectedCategories))
             ->paginate(12);
     }
 };

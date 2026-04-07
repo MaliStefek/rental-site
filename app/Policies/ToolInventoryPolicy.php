@@ -6,6 +6,7 @@ namespace App\Policies;
 
 use App\Models\ToolInventory;
 use App\Models\User;
+use App\Models\Asset;
 
 class ToolInventoryPolicy
 {
@@ -20,7 +21,7 @@ class ToolInventoryPolicy
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, ToolInventory $toolInventory): bool
+    public function view(User $user, Asset $asset): bool
     {
         return $user->roles->contains('admin');
     }
@@ -28,7 +29,7 @@ class ToolInventoryPolicy
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, ToolInventory $toolInventory): bool
+    public function update(User $user, Asset $asset): bool
     {
         return $user->roles->contains('admin'); // only admins can adjust stock
     }

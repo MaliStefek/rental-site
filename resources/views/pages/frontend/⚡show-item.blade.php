@@ -80,7 +80,7 @@ new #[Layout('layouts.app')] class extends Component {
         $this->dispatch('cart-updated');
         
         session()->flash('status', __('Item added to your bag.'));
-        $this->redirect(route('cart'), navigate: true);
+        $this->redirect(route('checkout'), navigate: true);
     }
 };
 ?>
