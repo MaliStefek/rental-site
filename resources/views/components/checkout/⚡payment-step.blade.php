@@ -153,7 +153,7 @@ new class extends Component {
 
     public function confirmOrder()
     {
-        $rental = \App\Models\Rental::find($this->draftRentalId);
+        $rental = Rental::find($this->draftRentalId);
         
         if (!$rental) {
             session()->flash('error', __('Rental not found.'));
@@ -208,7 +208,7 @@ new class extends Component {
         
         <div class="flex justify-between items-center text-sm font-bold text-gray-400 mb-8 border-t border-gray-800 pt-4">
             <span class="uppercase tracking-widest">{{ __('Total Amount') }}</span>
-            <span class="text-white text-xl font-black">€{{ number_format($this->calculateSecureTotal() / 100, 2) }}</span>
+            <span class="text-white text-xl font-black">€{{ number_format(($this->cachedTotal ?? 0) / 100, 2) }}</span>
         </div>
     </div>
 </div>

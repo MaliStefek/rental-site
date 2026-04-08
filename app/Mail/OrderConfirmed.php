@@ -36,8 +36,6 @@ class OrderConfirmed extends Mailable implements ShouldQueue
 
     public function attachments(): array
     {
-        ini_set('memory_limit', '512M');
-        
         $pdf = Pdf::loadView('emails.order-pdf', ['rental' => $this->rental]);
 
         return [

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use \Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Payment extends Model
 {
@@ -36,10 +37,15 @@ class Payment extends Model
         return $this->belongsTo(Rental::class);
     }
 
-    protected function user(): Attribute
+    public function user(): HasOneThrough
     {
-        return Attribute::make(
-            get: fn () => $this->rental?->user,
+        return $this->hasOneThrough(
+            User::class, 
+            Rental::class, 
+            'id',
+            'id',
+            'rental_id',
+            'user_id'
         );
     }
 }

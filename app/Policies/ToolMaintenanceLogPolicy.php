@@ -14,7 +14,7 @@ class ToolMaintenanceLogPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->roles->contains('admin'); // only admins see maintenance logs
+        return $user->isAdmin();
     }
 
     /**
@@ -22,7 +22,7 @@ class ToolMaintenanceLogPolicy
      */
     public function view(User $user, ToolMaintenanceLog $toolMaintenanceLog): bool
     {
-        return $user->roles->contains('admin');
+        return $user->isAdmin();
     }
 
     /**
@@ -30,7 +30,7 @@ class ToolMaintenanceLogPolicy
      */
     public function create(User $user): bool
     {
-        return $user->roles->contains('admin');
+        return $user->isAdmin();
     }
 
     /**
@@ -38,7 +38,7 @@ class ToolMaintenanceLogPolicy
      */
     public function update(User $user, ToolMaintenanceLog $toolMaintenanceLog): bool
     {
-        return $user->roles->contains('admin');
+        return $user->isAdmin();
     }
 
     /**
@@ -46,7 +46,7 @@ class ToolMaintenanceLogPolicy
      */
     public function delete(User $user, ToolMaintenanceLog $toolMaintenanceLog): bool
     {
-        return $user->roles->contains('admin');
+        return $user->isAdmin();
     }
 
     /**
@@ -54,7 +54,7 @@ class ToolMaintenanceLogPolicy
      */
     public function restore(User $user, ToolMaintenanceLog $toolMaintenanceLog): bool
     {
-        return $user->roles->contains('admin');
+        return $user->isAdmin();
     }
 
     /**
@@ -62,6 +62,6 @@ class ToolMaintenanceLogPolicy
      */
     public function forceDelete(User $user, ToolMaintenanceLog $toolMaintenanceLog): bool
     {
-        return $user->roles->contains('admin');
+        return $user->isAdmin();
     }
 }

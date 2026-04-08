@@ -7,7 +7,8 @@ use Carbon\Carbon;
 use App\Enums\PricingType;
 use App\Services\AvailabilityService;
 
-new #[Layout('layouts.app')] class extends Component {
+new #[Layout('layouts.app')] class extends Component 
+{
     public Tool $tool;
     public $startDate;
     public $endDate;

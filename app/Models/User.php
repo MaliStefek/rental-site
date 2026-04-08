@@ -56,14 +56,14 @@ class User extends Authenticatable
         return $this->hasMany(Rental::class);
     }
 
-    public function payments(): HasMany
+    public function payments()
     {
-        return $this->hasMany(Payment::class);
+        return $this->hasManyThrough(Payment::class, Rental::class);
     }
 
-    public function rentalItems(): HasMany
+    public function rentalItems()
     {
-        return $this->hasMany(RentalItem::class);
+        return $this->hasManyThrough(RentalItem::class, Rental::class);
     }
 
     public function roles(): BelongsToMany
@@ -73,7 +73,11 @@ class User extends Authenticatable
 
     public function hasRole(string $roleName): bool
     {
-        return $this->roles->contains('name', $roleName);
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains('name', $roleName);
+        }
+        
+        return $this->roles()->where('name', $roleName)->exists();
     }
 
     public function isAdmin(): bool

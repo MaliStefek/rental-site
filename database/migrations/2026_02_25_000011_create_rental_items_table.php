@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('rental_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('rental_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('rental_id')->constrained()->cascadeOnDelete();
             $table->foreignId('tool_id')->constrained()->restrictOnDelete();
             $table->unsignedInteger('quantity');
             $table->enum('pricing_type', PricingType::values());

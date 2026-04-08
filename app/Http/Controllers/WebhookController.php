@@ -55,40 +55,11 @@ class WebhookController extends Controller
     {
         try {
             DB::transaction(function () use ($rentalId, $paymentIntent) {
-                $rental = Rental::with('user')->where('id', $rentalId)->lockForUpdate()->first();
-
-                if (! $rental) {
-                    Log::error("Webhook error: Rental #{$rentalId} not found.");
-                    return;
+                $rental = Rental::with('user', 'items')->where('id', $rentalId)->lockForUpdate()->first();
+                
+                if (!$rental) {
+                    throw new Exception("Rental not found for ID: {$rentalId}");
                 }
-
-                if ($rental->status !== RentalStatus::DRAFT) {
-                    Log::info("Webhook ignored: Rental #{$rental->id} is already processed. Current Status: {$rental->status->value}");
-                    return;
-                }
-
-                $totalCents = $rental->total_cents ?? 0;
-                $newPaidCents = ($rental->paid_cents ?? 0) + $paymentIntent->amount;
-
-                $paymentStatus = $newPaidCents >= $totalCents
-                    ? PaymentStatus::PAID->value
-                    : PaymentStatus::PARTIAL->value;
-
-                $rental->update([
-                    'status' => RentalStatus::CONFIRMED->value,
-                    'payment_status' => $paymentStatus,
-                    'paid_cents' => $newPaidCents,
-                ]);
-
-                Payment::firstOrCreate(
-                    ['transaction_reference' => $paymentIntent->id],
-                    [
-                        'rental_id' => $rental->id,
-                        'amount_cents' => $paymentIntent->amount,
-                        'payment_method' => PaymentMethod::CARD->value,
-                        'paid_at' => now(),
-                    ]
-                );
 
                 foreach ($rental->items as $item) {
                     $assetIds = Asset::where('tool_id', $item->tool_id)
@@ -99,39 +70,38 @@ class WebhookController extends Controller
                         ->pluck('id');
 
                     if ($assetIds->count() < $item->quantity) {
-                        Log::critical("CRITICAL: Out of stock during allocation for Rental #{$rental->id}, Tool #{$item->tool_id}. Initiating refund.");
-                        
-                        DB::afterCommit(function () use ($paymentIntent) {
-                            try {
-                                app(StripeService::class)->refundPayment($paymentIntent->id, $paymentIntent->amount);
-                                Log::info("Refund successfully initiated for PaymentIntent {$paymentIntent->id} due to allocation failure.");
-                            } catch (Exception $refundException) {
-                                Log::critical("CRITICAL: Failed to refund PaymentIntent {$paymentIntent->id} automatically: " . $refundException->getMessage());
-                            }
-                        });
-                        
-                        throw new Exception("Out of stock allocation failed.");
+                        Log::critical("CRITICAL: Out of stock during allocation for Rental #{$rental->id}. Initiating refund.");
+                        throw new \RuntimeException("Allocation_Failed"); 
                     }
 
-                    Asset::whereIn('id', $assetIds)->lockForUpdate()->update([
+                    Asset::whereIn('id', $assetIds)->update([
                         'status' => AssetStatus::RENTED->value,
                         'current_rental_id' => $rental->id,
                     ]);
                 }
+                
+                $rental->update(['status' => RentalStatus::CONFIRMED->value]);
 
                 DB::afterCommit(function () use ($rental) {
-                    Log::info("Webhook successfully processed Rental #{$rental->id}");
-                    $recipientEmail = $rental->user?->email;
-
-                    if ($recipientEmail) {
-                        Mail::to($recipientEmail)->queue(new OrderConfirmed($rental));
-                    } else {
-                        Log::error("Email failed: No user email attached to Rental #{$rental->id}");
+                    if ($rental->user?->email) {
+                        Mail::to($rental->user->email)->queue(new OrderConfirmed($rental));
                     }
                 });
             });
+
+        } catch (\RuntimeException $e) {
+            if ($e->getMessage() === "Allocation_Failed") {
+                try {
+                    app(StripeService::class)->refundPayment($paymentIntent->id, $paymentIntent->amount);
+                    Log::info("Refund successfully initiated for PaymentIntent {$paymentIntent->id}.");
+                } catch (Exception $refundException) {
+                    Log::critical("CRITICAL: Failed to refund PaymentIntent {$paymentIntent->id}: " . $refundException->getMessage());
+                }
+            } else {
+                Log::error("Webhook DB Error for Rental #{$rentalId}: " . $e->getMessage());
+            }
         } catch (Exception $e) {
-            Log::error("Webhook DB Error for Rental #{$rentalId}: ".$e->getMessage().' on line '.$e->getLine());
+            Log::error("Webhook System Error for Rental #{$rentalId}: " . $e->getMessage());
         }
     }
 }

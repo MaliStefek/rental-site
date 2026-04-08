@@ -20,9 +20,11 @@
         <div class="header">
             <span class="badge">Order #{{ $rental->id }}</span>
             <h1 class="title">Reservation Confirmation</h1>
-            <p><strong>Customer:</strong> {{ $rental->user?->name ?? $rental->first_name }}</p>
-            <p><strong>Email:</strong> {{ $rental->user?->email ?? $rental->email }}</p>
-            <p><strong>Rental Period:</strong> {{ $rental->start_at->format('M d, Y') }} to {{ $rental->end_at->format('M d, Y') }}</p>
+            <div class="customer-info">
+                <p><strong>Customer:</strong> {{ $rental->user?->name ?? 'Guest/Unknown User' }}</p>
+                <p><strong>Email:</strong> {{ $rental->user?->email ?? 'N/A' }}</p>
+                <p><strong>Rental Period:</strong> {{ $rental->start_at->format('M d, Y') }} to {{ $rental->end_at ? $rental->end_at->format('M d, Y') : 'TBD' }}</p>
+            </div>
         </div>
 
         <table>
