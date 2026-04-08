@@ -72,8 +72,10 @@ new class extends Component {
     }
 
     #[Computed]
-    public function cartItemsWithPrices(PricingService $pricingService): array 
+    public function cartItemsWithPrices(): array 
     {
+        $pricingService = app(PricingService::class);
+
         $startAt = $this->startDate ? Carbon::parse($this->startDate) : now();
         $endAt = $this->endDate ? Carbon::parse($this->endDate) : now()->addDay();
         
@@ -152,79 +154,117 @@ new class extends Component {
         </div>
     @else
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
-            <div class="lg:col-span-2 space-y-6">
-                <h3 class="font-black uppercase tracking-widest text-lg text-white bg-dark p-4 border-l-4 border-primary">{{ __('1. Review Items & Select Dates') }}</h3>
-                @error('cart')
-                    <div class="bg-red-500/10 border border-red-500 text-red-500 font-bold p-4 uppercase tracking-widest text-sm">
-                        {{ $message }}
-                    </div>
-                @enderror
+            <div class="lg:col-span-2 space-y-8">
+                
+                <div class="space-y-6">
+                    <h3 class="font-black uppercase tracking-widest text-lg text-white bg-dark p-4 border-l-4 border-primary">
+                        {{ __('1. Review Items') }}
+                    </h3>
 
-                @foreach($this->cartItemsWithPrices as $key => $item)
-                    <div wire:key="cart-item-{{ $key }}" class="flex flex-col sm:flex-row gap-6 p-6 bg-dark border-2 border-gray-800 relative group">
-                        <div class="w-full sm:w-32 aspect-square bg-text-main border-2 border-gray-800 p-2 shrink-0">
-                            @if($item['image'])
-                                <img src="{{ asset('storage/'.$item['image']) }}" alt="{{ $item['name'] }}" class="w-full h-full object-contain grayscale group-hover:grayscale-0 transition-all">
-                            @else
-                                <div class="w-full h-full flex items-center justify-center"><flux:icon.camera class="w-8 h-8 text-gray-600" /></div>
-                            @endif
+                    @error('cart')
+                        <div class="bg-red-500/10 border border-red-500 text-red-500 font-bold p-4 uppercase tracking-widest text-sm">
+                            {{ $message }}
                         </div>
-                        <div class="flex-1 flex flex-col justify-between">
-                            <div>
+                    @enderror
+
+                    @foreach($this->cartItemsWithPrices as $key => $item)
+                        <div wire:key="cart-item-{{ $key }}" class="flex flex-col sm:flex-row gap-8 p-6 bg-dark border-2 border-gray-800 relative group">
+                            
+                            <div class="w-full sm:w-40 aspect-square bg-text-main border-2 border-gray-800 p-4 shrink-0 flex justify-center items-center">
+                                @if($item['image'])
+                                    <img src="{{ asset('storage/'.$item['image']) }}" alt="{{ $item['name'] }}" class="w-full h-full object-contain grayscale group-hover:grayscale-0 transition-all">
+                                @else
+                                    <flux:icon.camera class="w-12 h-12 text-gray-600" />
+                                @endif
+                            </div>
+                            
+                            <div class="flex-1 flex flex-col justify-between pt-2">
                                 <div class="flex items-start justify-between gap-4">
-                                    <h4 class="font-black text-xl uppercase tracking-tight text-white pr-8">{{ $item['name'] }}</h4>
-                                    <button wire:click="removeItem('{{ $key }}')" class="absolute top-4 right-4 text-gray-600 hover:text-red-500 transition-colors p-2"><flux:icon.x-mark class="w-6 h-6" /></button>
+                                    <div>
+                                        <h4 class="font-black text-2xl uppercase tracking-tight text-white pr-4 mb-3 leading-none">{{ $item['name'] }}</h4>
+                                        <span class="inline-flex items-center px-3 py-1.5 bg-text-main border border-gray-700 {{ ($item['pricing_type'] ?? '1-2 days') !== '1-2 days' ? 'text-primary border-primary/50' : 'text-gray-400' }} text-xs font-black uppercase tracking-widest transition-all">
+                                            {{ __('Rate') }} ({{ $item['pricing_type'] ?? '1-2 days' }}): €{{ number_format(($item['dynamic_price_cents'] ?? 0) / 100, 2) }} / day
+                                        </span>
+                                    </div>
+                                    <button wire:click="removeItem('{{ $key }}')" class="text-gray-600 hover:text-red-500 transition-colors p-2 -mt-2 -mr-2">
+                                        <flux:icon.x-mark class="w-6 h-6" />
+                                    </button>
                                 </div>
-                                <span class="inline-block mt-2 px-2 py-1 bg-text-main border border-gray-700 {{ ($item['pricing_type'] ?? '1-2 days') !== '1-2 days' ? 'text-primary border-primary/50' : 'text-gray-400' }} text-[10px] font-black uppercase tracking-widest transition-all">
-                                    {{ __('Rate') }} ({{ $item['pricing_type'] ?? '1-2 days' }}): €{{ number_format(($item['dynamic_price_cents'] ?? 0) / 100, 2) }} / day
-                                </span>
-                            </div>
-                            <div class="flex items-center mt-6 gap-4">
-                                <span class="text-xs font-black text-gray-500 uppercase tracking-widest">{{ __('Qty') }}</span>
-                                <div class="flex items-center bg-text-main border-2 border-gray-700">
-                                    <button wire:click="updateQuantity('{{ $key }}', -1)" class="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-800 transition-colors"><flux:icon.minus class="w-4 h-4" /></button>
-                                    <div class="w-12 h-10 flex items-center justify-center font-black text-lg bg-dark border-x-2 border-gray-700">{{ $item['quantity'] }}</div>
-                                    <button wire:click="updateQuantity('{{ $key }}', 1)" class="w-10 h-10 flex items-center justify-center text-white hover:bg-gray-800 transition-colors"><flux:icon.plus class="w-4 h-4" /></button>
+                                
+                                <div class="flex items-center gap-6 mt-8 pt-6 border-t border-gray-800/80">
+                                    <span class="text-xs font-black text-gray-500 uppercase tracking-widest">{{ __('Quantity') }}</span>
+                                    <div class="flex items-center bg-text-main border-2 border-gray-700 shadow-sm">
+                                        <button wire:click="updateQuantity('{{ $key }}', -1)" class="w-12 h-10 flex items-center justify-center text-white hover:bg-gray-800 transition-colors"><flux:icon.minus class="w-4 h-4" /></button>
+                                        <div class="w-14 h-10 flex items-center justify-center font-black text-lg bg-dark border-x-2 border-gray-700 text-white">{{ $item['quantity'] }}</div>
+                                        <button wire:click="updateQuantity('{{ $key }}', 1)" class="w-12 h-10 flex items-center justify-center text-white hover:bg-gray-800 transition-colors"><flux:icon.plus class="w-4 h-4" /></button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                @endforeach
 
-                <div class="bg-dark border-2 border-gray-800 p-8 mt-8">
-                    <h4 class="font-black uppercase tracking-widest text-white mb-4">{{ __('Select Rental Dates') }}</h4>
-                    <div class="flex flex-col sm:flex-row items-center gap-4 w-full">
-                        <div class="relative w-full">
-                            <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                                <flux:icon.calendar class="w-5 h-5 text-gray-500" />
-                            </div>
-                            <input type="date" wire:model.live="startDate" min="{{ date('Y-m-d') }}" class="block w-full pl-12 pr-4 py-4 bg-text-main border-2 {{ $errors->has('startDate') ? 'border-red-500' : 'border-gray-700 focus:border-primary' }} text-white font-black uppercase tracking-widest focus:ring-0 transition-colors cursor-pointer dark:[color-scheme:dark]" >
                         </div>
-                        <span class="text-gray-500 font-black uppercase text-xs">{{ __('to') }}</span>
-                        <div class="relative w-full">
-                            <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                                <flux:icon.calendar class="w-5 h-5 text-gray-500" />
+                    @endforeach
+                </div>
+
+                <div class="bg-dark border-2 border-gray-800 p-8 shadow-sm relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+                        <flux:icon.calendar class="w-32 h-32 text-white" />
+                    </div>
+
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-3 mb-6 border-b border-gray-800 pb-4">
+                            <h4 class="font-black uppercase tracking-widest text-lg text-white">{{ __('2. Select Rental Dates') }}</h4>
+                        </div>
+                        
+                        <div class="flex flex-col md:flex-row items-end gap-6 w-full mt-6">
+                            
+                            <div class="w-full">
+                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">{{ __('Pickup Date') }}</label>
+                                <div class="relative w-full">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                                        <flux:icon.calendar class="w-5 h-5 text-gray-500" />
+                                    </div>
+                                    <input type="date" wire:model.live="startDate" min="{{ date('Y-m-d') }}" class="block w-full pl-12 pr-4 py-4 bg-text-main border-2 {{ $errors->has('startDate') ? 'border-red-500' : 'border-gray-700 focus:border-primary focus:ring-0' }} text-white font-black uppercase tracking-widest transition-colors cursor-pointer dark:[color-scheme:dark]" >
+                                </div>
+                                @error('startDate') <span class="block mt-2 text-red-500 text-xs font-bold uppercase tracking-widest">{{ $message }}</span> @enderror
                             </div>
-                            <input type="date" wire:model.live="endDate" min="{{ $startDate ?? date('Y-m-d') }}" class="block w-full pl-12 pr-4 py-4 bg-text-main border-2 {{ $errors->has('endDate') ? 'border-red-500' : 'border-gray-700 focus:border-primary' }} text-white font-black uppercase tracking-widest focus:ring-0 transition-colors cursor-pointer dark:[color-scheme:dark]" >
+
+                            <div class="hidden md:flex shrink-0 pb-4">
+                                <flux:icon.arrow-right class="w-6 h-6 text-gray-600" />
+                            </div>
+                            
+                            <div class="w-full">
+                                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">{{ __('Return Date') }}</label>
+                                <div class="relative w-full">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                                        <flux:icon.calendar class="w-5 h-5 text-gray-500" />
+                                    </div>
+                                    <input type="date" wire:model.live="endDate" min="{{ $startDate ?? date('Y-m-d') }}" class="block w-full pl-12 pr-4 py-4 bg-text-main border-2 {{ $errors->has('endDate') ? 'border-red-500' : 'border-gray-700 focus:border-primary focus:ring-0' }} text-white font-black uppercase tracking-widest transition-colors cursor-pointer dark:[color-scheme:dark]" >
+                                </div>
+                                @error('endDate') <span class="block mt-2 text-red-500 text-xs font-bold uppercase tracking-widest">{{ $message }}</span> @enderror
+                            </div>
+
                         </div>
                     </div>
-                    @error('startDate') <span class="block mt-4 text-red-500 text-xs font-bold uppercase tracking-widest">{{ $message }}</span> @enderror
-                    @error('endDate') <span class="block mt-1 text-red-500 text-xs font-bold uppercase tracking-widest">{{ $message }}</span> @enderror
                 </div>
             </div>
 
             <div class="lg:col-span-1 bg-dark border-2 border-gray-800 p-8 shadow-[12px_12px_0px_0px_var(--color-primary)] sticky top-32">
                 <h3 class="font-black uppercase tracking-widest text-xl text-white mb-6 border-b-2 border-gray-800 pb-4">{{ __('Order Summary') }}</h3>
-                <div class="flex justify-between items-center text-sm font-bold text-gray-400 mb-8">
-                    <span class="uppercase tracking-widest">{{ __('Duration') }}</span>
-                    <span class="text-white">{{ $this->rentalDays }} {{ $this->rentalDays === 1 ? __('day') : __('days') }}</span>
+                
+                <div class="space-y-6 mb-8">
+                    <div class="flex justify-between items-center text-sm font-bold text-gray-400">
+                        <span class="uppercase tracking-widest">{{ __('Duration') }}</span>
+                        <span class="text-white bg-text-main px-3 py-1 border border-gray-700">{{ $this->rentalDays }} {{ $this->rentalDays === 1 ? __('day') : __('days') }}</span>
+                    </div>
                 </div>
-                <div class="flex justify-between items-center text-sm font-bold text-gray-400 mb-8">
-                    <span class="uppercase tracking-widest">{{ __('Total Cost') }}</span>
-                    <span class="text-white text-xl font-black">€{{ number_format($this->total / 100, 2) }}</span>
+                
+                <div class="flex justify-between items-end text-sm font-bold text-gray-400 mb-8 border-t border-gray-800 pt-6">
+                    <span class="uppercase tracking-widest mb-1">{{ __('Total Cost') }}</span>
+                    <span class="text-white text-3xl font-black leading-none text-primary">€{{ number_format($this->total / 100, 2) }}</span>
                 </div>
-                <button wire:click="nextStep" class="w-full bg-primary hover:bg-white text-dark font-black uppercase tracking-widest py-5 px-6 transition-all shadow-[6px_6px_0px_0px_#ffffff] hover:shadow-none hover:translate-y-[6px] hover:translate-x-[6px] flex items-center justify-center gap-2">
-                    {{ __('Next Step') }}
+                
+                <button wire:click="nextStep" class="w-full bg-primary hover:bg-white text-dark font-black uppercase tracking-widest py-5 px-6 transition-all shadow-[6px_6px_0px_0px_#ffffff] hover:shadow-none hover:translate-y-[6px] hover:translate-x-[6px] flex items-center justify-center gap-2 mt-4">
+                    {{ __('Continue') }}
                     <flux:icon.arrow-right class="w-5 h-5" />
                 </button>
             </div>
