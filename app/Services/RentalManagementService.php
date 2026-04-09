@@ -106,6 +106,11 @@ class RentalManagementService
 
         DB::transaction(function () use ($rental, $lateFeeCents, $damageFeeCents) {
             $lockedRental = Rental::where('id', $rental->id)->lockForUpdate()->firstOrFail();
+            $currentStatus = $lockedRental->status;
+
+            if ($currentStatus === RentalStatus::RETURNED || $currentStatus === RentalStatus::CANCELLED) {
+                throw new InvalidArgumentException("Cannot update fees for rental in {$currentStatus->value} status.");
+            }
 
             $newTotal = $lockedRental->subtotal_cents + $lateFeeCents + $damageFeeCents;
             $newPaymentStatus = match (true) {

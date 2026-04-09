@@ -95,11 +95,7 @@ new class extends Component {
                 $unitPrice = $pricingService->calculateDailyRate($tool, $startAt, $endAt);
                 
                 $days = $this->rentalDays;
-                $tier = match(true) {
-                    $days <= 2 => PricingType::DAILY_SHORT->value,
-                    $days <= 5 => PricingType::DAILY_MID->value,
-                    default => PricingType::DAILY_LONG->value,
-                };
+                $tier = PricingType::fromDays($days)->value;
 
                 $items[$key] = array_merge($item, [
                     'dynamic_price_cents' => $unitPrice,

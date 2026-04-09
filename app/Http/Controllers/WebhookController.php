@@ -63,7 +63,7 @@ class WebhookController extends Controller
                     throw new Exception("Rental not found for ID: {$rentalId}");
                 }
 
-                if ($rental->status !== RentalStatus::DRAFT && $rental->status !== RentalStatus::DRAFT->value) {
+                if ($rental->status !== RentalStatus::DRAFT) {
                     Log::info("Webhook ignored: Rental #{$rentalId} is already processed.");
 
                     return;
@@ -90,13 +90,15 @@ class WebhookController extends Controller
 
                 $paymentAmount = $paymentIntent->amount;
 
-                Payment::create([
-                    'rental_id' => $rental->id,
-                    'amount_cents' => $paymentAmount,
-                    'payment_method' => PaymentMethod::CARD->value,
-                    'transaction_reference' => $paymentIntent->id,
-                    'paid_at' => now(),
-                ]);
+                Payment::firstOrCreate(
+                    ['transaction_reference' => $paymentIntent->id],
+                    [
+                        'rental_id' => $rental->id,
+                        'amount_cents' => $paymentAmount,
+                        'payment_method' => PaymentMethod::CARD->value,
+                        'paid_at' => now(),
+                    ]
+                );
 
                 $newPaid = $rental->paid_cents + $paymentAmount;
                 $newPaymentStatus = match (true) {

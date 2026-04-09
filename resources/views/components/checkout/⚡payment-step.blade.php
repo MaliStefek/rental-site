@@ -4,8 +4,6 @@ use Livewire\Component;
 use App\Models\Rental;
 use App\Models\RentalItem;
 use App\Models\Tool;
-use Stripe\Stripe;
-use Stripe\PaymentIntent;
 use Carbon\Carbon;
 use App\Enums\PaymentStatus;
 use App\Enums\PricingType;
@@ -35,6 +33,12 @@ new class extends Component {
         $this->info = session()->get('checkout_info', []);
         $this->dates = session()->get('checkout_dates', []);
         $this->cart = session()->get('cart', []);
+
+        if (empty($this->info['first_name'])) {
+            session()->flash('error', __('Please complete your contact details first.'));
+            $this->dispatch('change-step', step: 2);
+            return;
+        }
         
         if ($this->cart === [] || empty($this->dates['start']) || empty($this->dates['end'])) {
             return;

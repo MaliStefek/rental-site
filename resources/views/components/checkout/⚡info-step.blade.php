@@ -1,10 +1,9 @@
 <?php
 
 use Livewire\Component;
-use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 
-new #[Layout('layouts.app')] class extends Component 
+new class extends Component 
 {
     public $first_name = '';
     public $last_name = '';

@@ -36,8 +36,8 @@ class AvailabilityService
                     RentalStatus::OVERDUE->value,
                 ])
                     ->where(function ($q) use ($startAt, $endAt) {
-                        $q->where('start_at', '<', $endAt)
-                            ->where('end_at', '>', $startAt);
+                        $q->where('start_at', '<=', $endAt)
+                            ->where('end_at', '>=', $startAt);
                     });
             })
             ->sum('quantity');

@@ -42,7 +42,7 @@ new class extends Component {
                 ];
             }
         } else {
-            $this->prices = [['type' => PricingType::DAILY->value, 'price' => null]];
+            $this->prices = [['type' => PricingType::DAILY_SHORT->value, 'price' => null]];
         }
     }
 
