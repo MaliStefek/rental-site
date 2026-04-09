@@ -11,9 +11,6 @@ use App\Enums\RentalStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\PricingType;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->availabilityService = new AvailabilityService();
@@ -84,4 +81,29 @@ it('throws an exception if start date is strictly after end date', function () {
 
     expect(fn() => $this->availabilityService->isAvailable($this->tool->id, $start, $end, 1))
         ->toThrow(InvalidArgumentException::class, 'Start date must be before or equal to end date');
+});
+
+it('blocks a second same-day rental when stock is exhausted', function () {
+    $user = User::factory()->create();
+    $today = Carbon::today();
+
+    $rental = Rental::factory()->create([
+        'user_id' => $user->id,
+        'status' => RentalStatus::CONFIRMED->value,
+        'start_at' => $today,
+        'end_at' => $today,
+        'total_cents' => 1000,
+        'paid_cents' => 0,
+        'payment_status' => PaymentStatus::UNPAID->value,
+    ]);
+
+    RentalItem::create([
+        'rental_id' => $rental->id,
+        'tool_id' => $this->tool->id,
+        'quantity' => 5,
+        'pricing_type' => PricingType::DAILY_SHORT->value,
+        'unit_price_cents' => 1500,
+    ]);
+
+    expect($this->availabilityService->isAvailable($this->tool->id, $today, $today, 1))->toBeFalse();
 });

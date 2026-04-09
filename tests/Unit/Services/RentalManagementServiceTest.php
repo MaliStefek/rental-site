@@ -10,9 +10,6 @@ use App\Enums\AssetStatus;
 use App\Enums\RentalStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentMethod;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->rentalService = new RentalManagementService();

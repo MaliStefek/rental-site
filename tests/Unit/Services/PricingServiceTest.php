@@ -5,9 +5,6 @@ use App\Models\Tool;
 use App\Models\ToolPrice;
 use App\Services\PricingService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->pricingService = new PricingService;

@@ -1,6 +1,7 @@
 <?php
 
 use Livewire\Component;
+use Livewire\Attributes\Locked;
 use App\Models\Rental;
 use App\Models\RentalItem;
 use App\Models\Tool;
@@ -20,7 +21,9 @@ new class extends Component {
     public array $cart = [];
     public string $clientSecret = '';
     public ?int $draftRentalId = null;
-    private ?int $cachedTotal = null;
+    
+    #[Locked]
+    public ?int $cachedTotal = null;
 
     public function mount(AvailabilityService $availabilityService, PricingService $pricingService): void 
     {
@@ -58,6 +61,7 @@ new class extends Component {
                 
                 if ($currentStatus === RentalStatus::DRAFT->value) {
                     $this->draftRentalId = $rental->id;
+                    $this->cachedTotal = $rental->total_cents;
                     $this->initializeStripe($rental);
                     return;
                 }
