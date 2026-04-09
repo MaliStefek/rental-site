@@ -1,24 +1,24 @@
 <?php
 
-use App\Models\User;
-use App\Models\Tool;
-use App\Models\Asset;
-use App\Models\Rental;
 use App\Enums\AssetStatus;
 use App\Enums\RentalStatus;
+use App\Models\Asset;
+use App\Models\Rental;
+use App\Models\Tool;
+use App\Models\User;
 use App\Services\RentalManagementService;
 use App\Services\StripeService;
+use Tests\TestCase;
 
 it('allows a user to cancel a confirmed rental and automatically processes a refund', function () {
-    /** @var \Tests\TestCase $this */
-    
+    /** @var TestCase $this */
     $user = User::factory()->create();
     $tool = Tool::factory()->create(['is_active' => true]);
     $asset = Asset::factory()->create([
-        'tool_id' => $tool->id, 
-        'status' => AssetStatus::RENTED->value
+        'tool_id' => $tool->id,
+        'status' => AssetStatus::RENTED->value,
     ]);
-    
+
     $rental = Rental::factory()->create([
         'user_id' => $user->id,
         'status' => RentalStatus::CONFIRMED->value,
@@ -40,10 +40,10 @@ it('allows a user to cancel a confirmed rental and automatically processes a ref
     $service->updateStatus($rental, RentalStatus::CANCELLED);
 
     expect($rental->fresh()->status->value)->toBe(RentalStatus::CANCELLED->value);
-    
+
     $this->assertDatabaseHas('assets', [
         'id' => $asset->id,
         'status' => AssetStatus::AVAILABLE->value,
-        'current_rental_id' => null
+        'current_rental_id' => null,
     ]);
 });

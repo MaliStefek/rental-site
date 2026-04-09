@@ -101,11 +101,7 @@ new class extends Component {
                 $unitPrice = $pricingService->calculateDailyRate($tool, $startAt, $endAt);
                 
                 $days = max(1, (int) $startAt->copy()->startOfDay()->diffInDays($endAt->copy()->startOfDay()) + 1);
-                $tier = match(true) {
-                    $days <= 2 => PricingType::DAILY_SHORT,
-                    $days <= 5 => PricingType::DAILY_MID,
-                    default => PricingType::DAILY_LONG,
-                };
+                $tier = PricingType::fromDays($days);
                 
                 RentalItem::create([
                     'rental_id' => $rental->id,

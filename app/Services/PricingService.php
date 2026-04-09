@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Tool;
 use App\Enums\PricingType;
+use App\Models\Tool;
 use Carbon\Carbon;
 use InvalidArgumentException;
 use RuntimeException;
@@ -22,22 +22,18 @@ class PricingService
             throw new InvalidArgumentException('End date must be on or after start date.');
         }
 
-        if (!$tool->relationLoaded('prices')) {
+        if (! $tool->relationLoaded('prices')) {
             $tool->load('prices');
         }
 
         $days = max(1, (int) $startAt->copy()->startOfDay()->diffInDays($endAt->copy()->startOfDay()) + 1);
-        
-        $tier = match(true) {
-            $days <= 2 => PricingType::DAILY_SHORT,
-            $days <= 5 => PricingType::DAILY_MID,
-            default => PricingType::DAILY_LONG,
-        };
+
+        $tier = PricingType::fromDays($days);
 
         $priceModel = $tool->prices->where('pricing_type', $tier->value)->first()
                    ?? $tool->prices->sortByDesc('price_cents')->first();
-        
-        if (!$priceModel || $priceModel->price_cents <= 0) {
+
+        if (! $priceModel || $priceModel->price_cents <= 0) {
             throw new RuntimeException("Critical: Tool #{$tool->id} lacks valid pricing.");
         }
 
@@ -47,20 +43,16 @@ class PricingService
     public function calculateDailyRate(Tool $tool, Carbon $startAt, Carbon $endAt): int
     {
         $days = max(1, (int) $startAt->copy()->startOfDay()->diffInDays($endAt->copy()->startOfDay()) + 1);
-        
-        $tier = match(true) {
-            $days <= 2 => PricingType::DAILY_SHORT,
-            $days <= 5 => PricingType::DAILY_MID,
-            default => PricingType::DAILY_LONG,
-        };
 
-        if (!$tool->relationLoaded('prices')) {
+        $tier = PricingType::fromDays($days);
+
+        if (! $tool->relationLoaded('prices')) {
             $tool->load('prices');
         }
 
         $priceModel = $tool->prices->where('pricing_type', $tier->value)->first()
                    ?? $tool->prices->sortByDesc('price_cents')->first();
-                   
+
         return $priceModel ? $priceModel->price_cents : 0;
     }
 }

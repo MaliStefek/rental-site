@@ -14,4 +14,13 @@ enum PricingType: string
     {
         return array_map(fn (PricingType $type) => $type->value, self::cases());
     }
+
+    public static function fromDays(int $days): self
+    {
+        return match (true) {
+            $days <= 2 => self::DAILY_SHORT,
+            $days <= 5 => self::DAILY_MID,
+            default => self::DAILY_LONG,
+        };
+    }
 }

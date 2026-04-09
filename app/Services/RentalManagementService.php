@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Rental;
+use App\Enums\AssetStatus;
+use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
+use App\Enums\RentalStatus;
 use App\Models\Asset;
 use App\Models\Payment;
-use App\Enums\RentalStatus;
-use App\Enums\PaymentStatus;
-use App\Enums\PaymentMethod;
-use App\Enums\AssetStatus;
+use App\Models\Rental;
+use Exception;
 use Illuminate\Support\Facades\DB;
-use App\Services\StripeService;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 
 class RentalManagementService
@@ -22,48 +23,50 @@ class RentalManagementService
         DB::transaction(function () use ($rental, $newStatus) {
             $lockedRental = Rental::where('id', $rental->id)->lockForUpdate()->firstOrFail();
             $oldStatus = $lockedRental->status;
-            
+
+            if ($oldStatus === RentalStatus::RETURNED || $oldStatus === RentalStatus::CANCELLED) {
+                throw new InvalidArgumentException("Cannot transition status from {$oldStatus->value}.");
+            }
+
             $lockedRental->update([
                 'status' => $newStatus->value,
             ]);
-            
+
             $shouldReleaseStock =
                 ($newStatus === RentalStatus::RETURNED && $oldStatus !== RentalStatus::RETURNED) ||
                 ($newStatus === RentalStatus::CANCELLED && $oldStatus !== RentalStatus::CANCELLED);
-                 
+
             if ($shouldReleaseStock) {
                 Asset::where('current_rental_id', $lockedRental->id)
                     ->update([
                         'status' => AssetStatus::AVAILABLE->value,
-                        'current_rental_id' => null
+                        'current_rental_id' => null,
                     ]);
             }
 
-            if ($newStatus === RentalStatus::CANCELLED && $oldStatus !== RentalStatus::CANCELLED) {
-                if ($lockedRental->paid_cents > 0 && $lockedRental->stripe_payment_intent_id) {
-                    Payment::create([
-                        'rental_id' => $lockedRental->id,
-                        'amount_cents' => -$lockedRental->paid_cents,
-                        'payment_method' => PaymentMethod::CARD->value,
-                        'transaction_reference' => 'refund_' . uniqid(),
-                        'paid_at' => now(),
-                    ]);
-
-                    $originalPaidCents = $lockedRental->paid_cents;
-
-                    $lockedRental->update([
-                        'payment_status' => PaymentStatus::REFUNDED->value,
-                        'paid_cents' => 0
-                    ]);
-
-                    // Execute network call ONLY after database guarantees commit
-                    DB::afterCommit(function () use ($lockedRental, $originalPaidCents) {
+            if ($newStatus === RentalStatus::CANCELLED && $oldStatus !== RentalStatus::CANCELLED && ($lockedRental->paid_cents > 0 && $lockedRental->stripe_payment_intent_id)) {
+                Payment::create([
+                    'rental_id' => $lockedRental->id,
+                    'amount_cents' => -$lockedRental->paid_cents,
+                    'payment_method' => PaymentMethod::CARD->value,
+                    'transaction_reference' => 'refund_'.uniqid(),
+                    'paid_at' => now(),
+                ]);
+                $originalPaidCents = $lockedRental->paid_cents;
+                $lockedRental->update([
+                    'payment_status' => PaymentStatus::REFUNDED->value,
+                    'paid_cents' => 0,
+                ]);
+                DB::afterCommit(function () use ($lockedRental, $originalPaidCents) {
+                    try {
                         app(StripeService::class)->refundPayment(
-                            $lockedRental->stripe_payment_intent_id, 
+                            $lockedRental->stripe_payment_intent_id,
                             $originalPaidCents
                         );
-                    });
-                }
+                    } catch (Exception $e) {
+                        Log::critical("CRITICAL: Failed to process Stripe refund for PaymentIntent {$lockedRental->stripe_payment_intent_id}: ".$e->getMessage());
+                    }
+                });
             }
         });
     }
@@ -77,12 +80,12 @@ class RentalManagementService
                 'rental_id' => $lockedRental->id,
                 'amount_cents' => $amountCents,
                 'payment_method' => $method->value,
-                'transaction_reference' => 'manual_' . strtoupper(uniqid()),
+                'transaction_reference' => 'manual_'.strtoupper(uniqid()),
                 'paid_at' => now(),
             ]);
 
             $newPaid = $lockedRental->payments()->sum('amount_cents');
-            $newPaymentStatus = match(true) {
+            $newPaymentStatus = match (true) {
                 $newPaid >= $lockedRental->total_cents => PaymentStatus::PAID,
                 $newPaid > 0 => PaymentStatus::PARTIAL,
                 default => PaymentStatus::UNPAID,
@@ -90,7 +93,7 @@ class RentalManagementService
 
             $lockedRental->update([
                 'paid_cents' => $newPaid,
-                'payment_status' => $newPaymentStatus->value
+                'payment_status' => $newPaymentStatus->value,
             ]);
         });
     }
@@ -105,7 +108,7 @@ class RentalManagementService
             $lockedRental = Rental::where('id', $rental->id)->lockForUpdate()->firstOrFail();
 
             $newTotal = $lockedRental->subtotal_cents + $lateFeeCents + $damageFeeCents;
-            $newPaymentStatus = match(true) {
+            $newPaymentStatus = match (true) {
                 $lockedRental->paid_cents >= $newTotal => PaymentStatus::PAID,
                 $lockedRental->paid_cents > 0 => PaymentStatus::PARTIAL,
                 default => PaymentStatus::UNPAID,
@@ -115,7 +118,7 @@ class RentalManagementService
                 'late_fee_cents' => $lateFeeCents,
                 'damage_fee_cents' => $damageFeeCents,
                 'total_cents' => $newTotal,
-                'payment_status' => $newPaymentStatus->value
+                'payment_status' => $newPaymentStatus->value,
             ]);
         });
     }
@@ -133,9 +136,9 @@ class RentalManagementService
             if ($currentStatus === RentalStatus::RETURNED || $currentStatus === RentalStatus::CANCELLED) {
                 throw new InvalidArgumentException("Cannot process return for rental in {$currentStatus->value} status.");
             }
-            
+
             $newTotal = $lockedRental->subtotal_cents + $lateFeeCents + $damageFeeCents;
-            $newPaymentStatus = match(true) {
+            $newPaymentStatus = match (true) {
                 $lockedRental->paid_cents >= $newTotal => PaymentStatus::PAID,
                 $lockedRental->paid_cents > 0 => PaymentStatus::PARTIAL,
                 default => PaymentStatus::UNPAID,
@@ -147,17 +150,17 @@ class RentalManagementService
                 'late_fee_cents' => $lateFeeCents,
                 'damage_fee_cents' => $damageFeeCents,
                 'total_cents' => $newTotal,
-                'payment_status' => $newPaymentStatus->value
+                'payment_status' => $newPaymentStatus->value,
             ]);
 
-            $targetAssetStatus = ($damageFeeCents > 0 || $needsMaintenance) 
-                ? AssetStatus::MAINTENANCE->value 
+            $targetAssetStatus = ($damageFeeCents > 0 || $needsMaintenance)
+                ? AssetStatus::MAINTENANCE->value
                 : AssetStatus::AVAILABLE->value;
 
             Asset::where('current_rental_id', $lockedRental->id)
                 ->update([
                     'status' => $targetAssetStatus,
-                    'current_rental_id' => null
+                    'current_rental_id' => null,
                 ]);
         });
     }

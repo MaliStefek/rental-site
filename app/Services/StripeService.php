@@ -8,6 +8,7 @@ use App\Models\Rental;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Stripe\PaymentIntent;
+use Stripe\Refund;
 use Stripe\Stripe;
 
 class StripeService
@@ -19,11 +20,10 @@ class StripeService
 
     public function createOrUpdateIntent(Rental $rental, int $depositAmount): PaymentIntent
     {
-        if (!empty($rental->stripe_payment_intent_id)) {
+        if (! empty($rental->stripe_payment_intent_id)) {
             try {
                 $intent = PaymentIntent::retrieve($rental->stripe_payment_intent_id);
-                
-                // If the intent is locked, we must create a fresh one
+
                 if (in_array($intent->status, ['succeeded', 'processing', 'canceled'])) {
                     return $this->createNewIntent($rental, $depositAmount);
                 }
@@ -33,6 +33,7 @@ class StripeService
                 ]);
             } catch (Exception $e) {
                 Log::warning('Stripe intent update failed, generating new intent: '.$e->getMessage());
+
                 return $this->createNewIntent($rental, $depositAmount);
             }
         }
@@ -40,7 +41,7 @@ class StripeService
         return $this->createNewIntent($rental, $depositAmount);
     }
 
-    private function createNewIntent(Rental $rental, int $depositAmount): PaymentIntent 
+    private function createNewIntent(Rental $rental, int $depositAmount): PaymentIntent
     {
         $intent = PaymentIntent::create([
             'amount' => $depositAmount,
@@ -48,25 +49,10 @@ class StripeService
             'automatic_payment_methods' => ['enabled' => true],
             'metadata' => ['rental_id' => $rental->id],
         ]);
-        
+
         $rental->update(['stripe_payment_intent_id' => $intent->id]);
 
         return $intent;
-    }
-
-    public function verifyPayment(string $intentId): bool
-    {
-        if ($intentId === '' || $intentId === '0') {
-            return false;
-        }
-
-        try {
-            $intent = PaymentIntent::retrieve($intentId);
-            return $intent->status === 'succeeded';
-        } catch (Exception $e) {
-            Log::error('Stripe verify payment failed: '.$e->getMessage());
-            return false;
-        }
     }
 
     public function refundPayment(string $intentId, int $amountCents): bool
@@ -76,15 +62,17 @@ class StripeService
         }
 
         if ($amountCents <= 0) {
-            Log::error('Stripe refund failed: Invalid amount (' . $amountCents . ')');
+            Log::error('Stripe refund failed: Invalid amount ('.$amountCents.')');
+
             return false;
         }
 
         try {
-            \Stripe\Refund::create([
+            Refund::create([
                 'payment_intent' => $intentId,
                 'amount' => $amountCents,
             ]);
+
             return true;
         } catch (Exception $e) {
             Log::error('Stripe refund failed: '.$e->getMessage());

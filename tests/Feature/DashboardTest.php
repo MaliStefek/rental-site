@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -11,17 +13,17 @@ class DashboardTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guests_are_redirected_to_login()
+    public function test_guests_are_redirected_to_login(): void
     {
-        $response = $this->get(route('admin.dashboard')); 
-        
+        $response = $this->get(route('admin.dashboard'));
+
         $response->assertRedirect(route('login'));
     }
 
-    public function test_admins_can_access_dashboard()
+    public function test_admins_can_access_dashboard(): void
     {
         $admin = User::factory()->create();
-        
+
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $admin->roles()->attach($adminRole);
 

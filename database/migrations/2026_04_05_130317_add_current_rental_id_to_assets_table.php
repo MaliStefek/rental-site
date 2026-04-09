@@ -10,9 +10,9 @@ return new class extends Migration
     {
         Schema::table('assets', function (Blueprint $table) {
             $table->foreignId('current_rental_id')
-                  ->nullable()
-                  ->constrained('rentals')
-                  ->nullOnDelete();
+                ->nullable()
+                ->constrained('rentals')
+                ->nullOnDelete();
         });
     }
 

@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use RuntimeException;
 use Stripe\Exception\SignatureVerificationException;
 use Stripe\Webhook;
 use UnexpectedValueException;
@@ -32,8 +33,9 @@ class WebhookController extends Controller
 
         try {
             $event = Webhook::constructEvent($payload, $sig_header, $endpoint_secret);
-        } catch (UnexpectedValueException | SignatureVerificationException $e) {
-            Log::warning('Stripe webhook verification failed: ' . $e->getMessage());
+        } catch (UnexpectedValueException|SignatureVerificationException $e) {
+            Log::warning('Stripe webhook verification failed: '.$e->getMessage());
+
             return response('Invalid request', 400);
         }
 
@@ -56,9 +58,15 @@ class WebhookController extends Controller
         try {
             DB::transaction(function () use ($rentalId, $paymentIntent) {
                 $rental = Rental::with('user', 'items')->where('id', $rentalId)->lockForUpdate()->first();
-                
-                if (!$rental) {
+
+                if (! $rental) {
                     throw new Exception("Rental not found for ID: {$rentalId}");
+                }
+
+                if ($rental->status !== RentalStatus::DRAFT && $rental->status !== RentalStatus::DRAFT->value) {
+                    Log::info("Webhook ignored: Rental #{$rentalId} is already processed.");
+
+                    return;
                 }
 
                 foreach ($rental->items as $item) {
@@ -71,7 +79,7 @@ class WebhookController extends Controller
 
                     if ($assetIds->count() < $item->quantity) {
                         Log::critical("CRITICAL: Out of stock during allocation for Rental #{$rental->id}. Initiating refund.");
-                        throw new \RuntimeException("Allocation_Failed"); 
+                        throw new RuntimeException('Allocation_Failed');
                     }
 
                     Asset::whereIn('id', $assetIds)->update([
@@ -79,8 +87,29 @@ class WebhookController extends Controller
                         'current_rental_id' => $rental->id,
                     ]);
                 }
-                
-                $rental->update(['status' => RentalStatus::CONFIRMED->value]);
+
+                $paymentAmount = $paymentIntent->amount;
+
+                Payment::create([
+                    'rental_id' => $rental->id,
+                    'amount_cents' => $paymentAmount,
+                    'payment_method' => PaymentMethod::CARD->value,
+                    'transaction_reference' => $paymentIntent->id,
+                    'paid_at' => now(),
+                ]);
+
+                $newPaid = $rental->paid_cents + $paymentAmount;
+                $newPaymentStatus = match (true) {
+                    $newPaid >= $rental->total_cents => PaymentStatus::PAID->value,
+                    $newPaid > 0 => PaymentStatus::PARTIAL->value,
+                    default => PaymentStatus::UNPAID->value,
+                };
+
+                $rental->update([
+                    'status' => RentalStatus::CONFIRMED->value,
+                    'paid_cents' => $newPaid,
+                    'payment_status' => $newPaymentStatus,
+                ]);
 
                 DB::afterCommit(function () use ($rental) {
                     if ($rental->user?->email) {
@@ -89,19 +118,19 @@ class WebhookController extends Controller
                 });
             });
 
-        } catch (\RuntimeException $e) {
-            if ($e->getMessage() === "Allocation_Failed") {
+        } catch (RuntimeException $e) {
+            if ($e->getMessage() === 'Allocation_Failed') {
                 try {
                     app(StripeService::class)->refundPayment($paymentIntent->id, $paymentIntent->amount);
                     Log::info("Refund successfully initiated for PaymentIntent {$paymentIntent->id}.");
                 } catch (Exception $refundException) {
-                    Log::critical("CRITICAL: Failed to refund PaymentIntent {$paymentIntent->id}: " . $refundException->getMessage());
+                    Log::critical("CRITICAL: Failed to refund PaymentIntent {$paymentIntent->id}: ".$refundException->getMessage());
                 }
             } else {
-                Log::error("Webhook DB Error for Rental #{$rentalId}: " . $e->getMessage());
+                Log::error("Webhook DB Error for Rental #{$rentalId}: ".$e->getMessage());
             }
         } catch (Exception $e) {
-            Log::error("Webhook System Error for Rental #{$rentalId}: " . $e->getMessage());
+            Log::error("Webhook System Error for Rental #{$rentalId}: ".$e->getMessage());
         }
     }
 }

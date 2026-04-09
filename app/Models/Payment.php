@@ -6,12 +6,11 @@ namespace App\Models;
 
 use App\Enums\PaymentMethod;
 use Database\Factories\PaymentFactory;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use \Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Payment extends Model
 {
@@ -40,8 +39,8 @@ class Payment extends Model
     public function user(): HasOneThrough
     {
         return $this->hasOneThrough(
-            User::class, 
-            Rental::class, 
+            User::class,
+            Rental::class,
             'id',
             'id',
             'rental_id',

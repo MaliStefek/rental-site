@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Enums\AssetStatus;
 use App\Models\Asset;
 use App\Models\Tool;
-use App\Enums\AssetStatus;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class AssetFactory extends Factory
@@ -15,7 +15,7 @@ class AssetFactory extends Factory
     {
         return [
             'tool_id' => Tool::factory(),
-            'sku' => $this->faker->unique()->bothify('??-####'), 
+            'sku' => $this->faker->unique()->bothify('??-####'),
             'status' => AssetStatus::AVAILABLE->value,
             'current_rental_id' => null,
         ];

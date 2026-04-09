@@ -40,7 +40,7 @@ class ToolPolicy
     {
         return $user->isAdmin();
     }
-    
+
     public function delete(User $user, Tool $tool): bool
     {
         return $user->isAdmin();

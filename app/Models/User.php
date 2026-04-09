@@ -76,7 +76,7 @@ class User extends Authenticatable
         if ($this->relationLoaded('roles')) {
             return $this->roles->contains('name', $roleName);
         }
-        
+
         return $this->roles()->where('name', $roleName)->exists();
     }
 

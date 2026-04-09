@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Gate;
 new class extends Component {
     public Rental $rental;
 
-    public function cancelReservation(RentalManagementService $service)
+    public function cancelReservation(RentalManagementService $service): void
     {
         Gate::authorize('update', $this->rental); 
 

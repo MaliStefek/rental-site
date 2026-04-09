@@ -22,7 +22,9 @@ new class extends Component {
 
     public function updateQuantity($cartKey, $amount, \App\Services\AvailabilityService $availabilityService): void 
     {
-        if (!isset($this->cart[$cartKey])) return;
+        if (!isset($this->cart[$cartKey])) {
+            return;
+        }
 
         $toolId = $this->cart[$cartKey]['tool_id'];
         $newQuantity = $this->cart[$cartKey]['quantity'] + $amount;
@@ -55,15 +57,19 @@ new class extends Component {
     }
 
     #[Computed]
-    public function rentalDays() 
+    public function rentalDays(): int 
     {
-        if (!$this->startDate || !$this->endDate) return 1;
+        if (!$this->startDate || !$this->endDate) {
+            return 1;
+        }
 
         try {
             $start = Carbon::parse($this->startDate)->startOfDay();
             $end = Carbon::parse($this->endDate)->startOfDay();
 
-            if ($end->lessThan($start)) return 1;
+            if ($end->lessThan($start)) {
+                return 1;
+            }
 
             return max(1, (int) $start->diffInDays($end) + 1);
         } catch (\Exception) {

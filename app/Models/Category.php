@@ -22,9 +22,9 @@ class Category extends Model
     protected static function booted(): void
     {
         static::deleting(function ($category) {
-            if (!$category->isForceDeleting()) {
-                $category->slug = $category->slug . '-deleted-' . time();
-                $category->saveQuietly(); 
+            if (! $category->isForceDeleting()) {
+                $category->slug = $category->slug.'-deleted-'.time();
+                $category->saveQuietly();
             }
         });
     }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
 use App\Models\Rental;
@@ -12,7 +14,11 @@ class RentalPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin() || $user->isEmployee();
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->isEmployee();
     }
 
     /**
@@ -20,7 +26,14 @@ class RentalPolicy
      */
     public function view(User $user, Rental $rental): bool
     {
-        return $user->isAdmin() || $user->isEmployee() || $user->id === $rental->user_id;
+        if ($user->isAdmin()) {
+            return true;
+        }
+        if ($user->isEmployee()) {
+            return true;
+        }
+
+        return $user->id === $rental->user_id;
     }
 
     /**
@@ -36,7 +49,11 @@ class RentalPolicy
      */
     public function update(User $user, Rental $rental): bool
     {
-        return $user->isAdmin() || $user->isEmployee();
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->isEmployee();
     }
 
     /**

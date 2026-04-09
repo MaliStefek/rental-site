@@ -31,6 +31,13 @@ new #[Layout('layouts.app')] class extends Component
 
     public function addToCart(AvailabilityService $availabilityService): void
     {
+        if (!auth()->check()) {
+            session()->put('url.intended', request()->header('Referer') ?? url()->current());
+            session()->flash('error', __('You must be logged in or registered to rent equipment.'));
+            $this->redirect(route('login'), navigate: true);
+            return;
+        }
+
         $this->validate([
             'startDate' => 'required|date|after_or_equal:today',
             'endDate' => 'required|date|after_or_equal:startDate',
@@ -39,13 +46,6 @@ new #[Layout('layouts.app')] class extends Component
             'startDate.after_or_equal' => __('Start date must be today or in the future.'),
             'endDate.after_or_equal' => __('End date must be on or after the start date.'),
         ]);
-
-        if (!auth()->check()) {
-            session()->put('url.intended', request()->header('Referer') ?? url()->current());
-            session()->flash('error', __('You must be logged in or registered to rent equipment.'));
-            $this->redirect(route('login'), navigate: true);
-            return;
-        }
 
         $startAt = Carbon::parse($this->startDate)->startOfDay();
         $endAt = Carbon::parse($this->endDate)->startOfDay();
@@ -228,7 +228,7 @@ new #[Layout('layouts.app')] class extends Component
                             @endif
 
                             <button 
-                                wire:click="addToBag" 
+                                wire:click="addToCart" 
                                 @disabled($tool->available_stock <= 0)
                                 class="w-full bg-primary hover:bg-white text-dark font-black uppercase tracking-widest py-6 px-8 transition-all shadow-[6px_6px_0px_0px_#ffffff] hover:shadow-none hover:translate-y-[6px] hover:translate-x-[6px] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0 disabled:translate-x-0"
                             >

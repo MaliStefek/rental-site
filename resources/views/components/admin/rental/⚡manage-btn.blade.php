@@ -19,13 +19,13 @@ new class extends Component {
     public $paymentAmount = '';
     public $paymentMethod;
 
-    public function mount(Rental $rental)
+    public function mount(Rental $rental): void
     {
         $this->rental = $rental;
         $this->loadData();
     }
 
-    public function loadData()
+    public function loadData(): void
     {
         $this->rental->refresh();
         
@@ -42,7 +42,7 @@ new class extends Component {
         $this->paymentMethod = \App\Enums\PaymentMethod::cases()[0]->value;
     }
 
-    public function updateStatus(RentalManagementService $service)
+    public function updateStatus(RentalManagementService $service): void
     {
         $this->rental->refresh();
         $this->authorize('update', $this->rental);
@@ -55,7 +55,7 @@ new class extends Component {
         session()->flash('success_status', __('Status successfully updated.'));
     }
 
-    public function updateFees(RentalManagementService $service)
+    public function updateFees(RentalManagementService $service): void
     {
         $this->rental->refresh();
         $this->authorize('update', $this->rental);
@@ -78,22 +78,22 @@ new class extends Component {
         session()->flash('success_fees', __('Fees updated successfully.'));
     }
 
-    public function recordPayment(RentalManagementService $service)
+    public function recordPayment(RentalManagementService $service): void
     {
         $this->rental->refresh();
         $this->authorize('update', $this->rental);
+        
+        $balanceCents = $this->rental->total_cents - $this->rental->paid_cents;
+        $maxAmount = $balanceCents / 100;
+
         $this->validate([
-            'paymentAmount' => 'required|numeric|min:0.01',
+            'paymentAmount' => ['required', 'numeric', 'min:0.01', 'max:' . $maxAmount],
             'paymentMethod' => ['required', Rule::enum(PaymentMethod::class)],
+        ], [
+            'paymentAmount.max' => __('Cannot overpay the balance.')
         ]);
 
         $amountCents = (int) round((float) str_replace(',', '.', (string) $this->paymentAmount) * 100);
-        $balanceCents = $this->rental->total_cents - $this->rental->paid_cents;
-
-        if ($amountCents > $balanceCents) {
-            $this->addError('paymentAmount', __('Cannot overpay the balance.'));
-            return;
-        }
 
         $service->recordManualPayment($this->rental, $amountCents, PaymentMethod::from($this->paymentMethod));
         

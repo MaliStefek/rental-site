@@ -32,11 +32,13 @@ new class extends Component {
             $now = now();
 
             while (($row = fgetcsv($file, 0, $delimiter)) !== FALSE) {
-                if (empty(trim($row[0]))) continue;
+                if (in_array(trim((string) $row[0]), ['', '0'], true)) {
+                    continue;
+                }
 
                 $records[] = [
                     'tool_id' => $this->tool->id,
-                    'sku' => trim($row[0]),
+                    'sku' => trim((string) $row[0]),
                     'serial_number' => isset($row[1]) ? trim($row[1]) : null,
                     'internal_notes' => isset($row[2]) ? trim($row[2]) : null,
                     'status' => \App\Enums\AssetStatus::AVAILABLE->value,
