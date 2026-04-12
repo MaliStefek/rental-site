@@ -15,8 +15,9 @@ new #[Layout('layouts.app')] class extends Component
     public $endDate;
     public $quantity = 1;
     public $cart = [];
+    public array $disabledDates = [];
 
-    public function mount(string $slug): void
+    public function mount(string $slug, AvailabilityService $availabilityService): void
     {
         $this->tool = Tool::with(['prices', 'category'])
             ->where('slug', $slug)
@@ -25,8 +26,14 @@ new #[Layout('layouts.app')] class extends Component
         $this->cart = session()->get('cart', []);
         
         $dates = session()->get('checkout_dates', []);
-        $this->startDate = $dates['start'] ?? null;
-        $this->endDate = $dates['end'] ?? null;
+        $this->startDate = $dates['start'] ?? now()->format('Y-m-d');
+        $this->endDate = $dates['end'] ?? now()->addDay()->format('Y-m-d');
+
+        $this->disabledDates = $availabilityService->getFullyBookedDates(
+            $this->tool->id, 
+            now(), 
+            now()->addMonths(6)
+        );
     }
 
     public function addToCart(AvailabilityService $availabilityService): void
@@ -43,6 +50,7 @@ new #[Layout('layouts.app')] class extends Component
             'endDate' => 'required|date|after_or_equal:startDate',
             'quantity' => 'required|integer|min:1',
         ], [
+            'startDate.required' => __('Please select your rental dates.'),
             'startDate.after_or_equal' => __('Start date must be today or in the future.'),
             'endDate.after_or_equal' => __('End date must be on or after the start date.'),
         ]);
@@ -94,7 +102,13 @@ new #[Layout('layouts.app')] class extends Component
 
 <div class="bg-text-main min-h-screen font-sans text-white flex flex-col relative overflow-hidden">
     
-    {{-- Ozadje z ikonami --}}
+    @assets
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    @endassets
+
+    {{-- Background Icons --}}
     <div class="absolute inset-0 w-full h-full opacity-[0.03] pointer-events-none overflow-hidden">
         <flux:icon.cog-6-tooth class="absolute -top-20 -left-20 w-[40rem] h-[40rem] rotate-45 text-white" />
         <flux:icon.wrench class="absolute top-[40%] -right-20 w-[35rem] h-[35rem] -rotate-12 text-white" />
@@ -103,7 +117,7 @@ new #[Layout('layouts.app')] class extends Component
 
     <div class="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-12 pt-14 w-full">
         
-        {{-- BreadcrumbNavigacija --}}
+        {{-- Breadcrumb Navigation --}}
         <nav class="flex items-center gap-2 mb-12 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
             <a href="{{ route('home') }}" class="hover:text-primary transition-colors">{{ __('Home') }}</a>
             <flux:icon.chevron-right class="w-3 h-3 text-gray-800" />
@@ -120,7 +134,7 @@ new #[Layout('layouts.app')] class extends Component
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
             
-            {{-- Leva stran: Slika in opis --}}
+            {{-- Left Side: Image & Description --}}
             <div class="lg:col-span-7 space-y-12">
                 <div class="relative group">
                     <div class="absolute -inset-4 border-2 border-gray-800/50 pointer-events-none transition-colors group-hover:border-primary/30"></div>
@@ -143,7 +157,6 @@ new #[Layout('layouts.app')] class extends Component
                         <h3 class="font-black text-2xl uppercase tracking-tighter italic">{{ __('Technical Specs') }}</h3>
                     </div>
                     <div class="text-gray-400 leading-relaxed text-lg max-w-2xl prose prose-invert text-justify">
-                        {{-- Sanitized Markdown Output --}}
                         {!! Str::markdown($tool->description ?? __('No description provided for this item.'), [
                             'html_input' => 'strip',
                             'allow_unsafe_links' => false,
@@ -152,7 +165,7 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
             </div>
 
-            {{-- Desna stran: Info kartica --}}
+            {{-- Right Side: Info Card --}}
             <div class="lg:col-span-5">
                 <div class="bg-dark border-2 border-gray-800 p-8 sm:p-10 shadow-[16px_16px_0px_0px_var(--color-primary)] relative overflow-hidden">
                     
@@ -207,31 +220,69 @@ new #[Layout('layouts.app')] class extends Component
                             @endif
                         </div>
 
-                        <div class="pt-4 space-y-4">
+                        {{-- Interactive Date & Quantity Selector --}}
+                        <div class="pt-4 pb-2 border-t border-gray-800">
+                            <h4 class="font-black uppercase tracking-widest text-xs text-gray-500 mb-3">{{ __('Reservation Dates') }}</h4>
+                            
+                            <div wire:ignore 
+                                 x-data="{
+                                    startDate: @entangle('startDate'),
+                                    endDate: @entangle('endDate'),
+                                    disabledDates: @js($disabledDates),
+                                    init() {
+                                        flatpickr(this.$refs.picker, {
+                                            mode: 'range',
+                                            minDate: 'today',
+                                            disable: this.disabledDates,
+                                            dateFormat: 'Y-m-d',
+                                            defaultDate: [this.startDate, this.endDate],
+                                            theme: 'dark',
+                                            onChange: (selectedDates, dateStr, instance) => {
+                                                if (selectedDates.length === 2) {
+                                                    this.startDate = instance.formatDate(selectedDates[0], 'Y-m-d');
+                                                    this.endDate = instance.formatDate(selectedDates[1], 'Y-m-d');
+                                                } else if (selectedDates.length === 1) {
+                                                    this.startDate = instance.formatDate(selectedDates[0], 'Y-m-d');
+                                                    this.endDate = instance.formatDate(selectedDates[0], 'Y-m-d');
+                                                } else {
+                                                    this.startDate = null;
+                                                    this.endDate = null;
+                                                }
+                                            }
+                                        });
+                                    }
+                                 }" 
+                                 class="relative">
+                                <flux:icon.calendar class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                                <input type="text" x-ref="picker" readonly class="w-full bg-zinc-900 border-2 border-gray-800 text-white p-4 pl-12 font-bold tracking-widest focus:border-primary focus:ring-0 placeholder:text-gray-600 cursor-pointer" placeholder="{{ __('Select Pickup to Return') }}">
+                            </div>
+                            @error('startDate') <p class="text-[10px] text-red-500 font-bold uppercase mt-2">{{ $message }}</p> @enderror
+
+                            <div class="flex items-center justify-between mt-6">
+                                <h4 class="font-black uppercase tracking-widest text-xs text-gray-500">{{ __('Quantity') }}</h4>
+                                <div class="flex items-center border-2 border-gray-800 bg-zinc-900">
+                                    <button type="button" wire:click="$set('quantity', quantity > 1 ? quantity - 1 : 1)" class="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">-</button>
+                                    <span class="font-black text-lg w-12 text-center text-white">{{ $quantity }}</span>
+                                    <button type="button" wire:click="$set('quantity', quantity + 1)" class="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">+</button>
+                                </div>
+                            </div>
+                            @error('quantity') <p class="text-[10px] text-red-500 font-bold uppercase mt-2 text-right">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="space-y-4">
                             @if (session()->has('success'))
-                                <div x-data="{ show: true }" 
-                                     x-init="setTimeout(() => show = false, 5000)" 
-                                     x-show="show" 
-                                     x-transition.out.opacity.duration.1000ms
-                                     class="bg-green-500 text-dark font-black uppercase tracking-widest text-[10px] py-3 px-4 text-center">
+                                <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show" x-transition.out.opacity.duration.1000ms class="bg-green-500 text-dark font-black uppercase tracking-widest text-[10px] py-3 px-4 text-center">
                                     {{ session('success') }}
                                 </div>
                             @endif
 
                             @if (session()->has('error'))
-                                <div x-data="{ show: true }" 
-                                     x-init="setTimeout(() => show = false, 5000)" 
-                                     x-show="show" 
-                                     class="bg-red-500 text-white font-black uppercase tracking-widest text-[10px] py-3 px-4 text-center">
+                                <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show" class="bg-red-500 text-white font-black uppercase tracking-widest text-[10px] py-3 px-4 text-center">
                                     {{ session('error') }}
                                 </div>
                             @endif
 
-                            <button 
-                                wire:click="addToCart" 
-                                @disabled($tool->available_stock <= 0)
-                                class="w-full bg-primary hover:bg-white text-dark font-black uppercase tracking-widest py-6 px-8 transition-all shadow-[6px_6px_0px_0px_#ffffff] hover:shadow-none hover:translate-y-[6px] hover:translate-x-[6px] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0 disabled:translate-x-0"
-                            >
+                            <button wire:click="addToCart" @disabled($tool->available_stock <= 0) class="w-full bg-primary hover:bg-white text-dark font-black uppercase tracking-widest py-6 px-8 transition-all shadow-[6px_6px_0px_0px_#ffffff] hover:shadow-none hover:translate-y-[6px] hover:translate-x-[6px] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0 disabled:translate-x-0">
                                 <span class="flex items-center justify-center gap-3 text-lg">
                                     {{ $tool->available_stock > 0 ? __('Add to Bag') : __('Unavailable') }}
                                     <flux:icon.arrow-right class="w-5 h-5" />

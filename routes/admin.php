@@ -10,4 +10,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::livewire('admin/inventory', 'pages::admin.inventory')->name('inventory.edit');
     Route::livewire('admin/rentals', 'pages::admin.rentals')->name('rentals.edit');
     Route::livewire('admin/tools', 'pages::admin.tools')->name('tools.edit');
+    Route::livewire('admin/users', 'pages::admin.users')->name('users.index');
+    Route::livewire('admin/activity', 'pages::admin.activity')->name('activity.index');
+    Route::livewire('admin/analytics', 'pages::admin.analytics')->name('analytics.index');
 });

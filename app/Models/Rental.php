@@ -21,7 +21,9 @@ class Rental extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'user_id', 'status', 'start_at', 'end_at', 'returned_at',
+        'user_id', 
+        'customer_first_name', 'customer_last_name', 'customer_email', 'customer_phone', // New Fields
+        'status', 'start_at', 'end_at', 'returned_at',
         'subtotal_cents', 'late_fee_cents', 'damage_fee_cents',
         'total_cents', 'paid_cents', 'payment_status', 'notes',
         'stripe_payment_intent_id',

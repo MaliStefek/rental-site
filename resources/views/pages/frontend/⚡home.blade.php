@@ -40,6 +40,13 @@ new #[Layout('layouts.app')] class extends Component
 ?>
 
 <div class="bg-dark min-h-screen font-sans flex flex-col">
+    
+    @if(session()->has('cart') && count(session('cart')) > 0)
+        <div class="w-full bg-primary text-dark text-center py-2 font-black uppercase tracking-widest text-xs z-40 fixed top-[96px] lg:top-[96px]">
+            {{ __('You have') }} {{ count(session('cart')) }} {{ __('items in your bag. ') }} 
+            <a href="{{ route('checkout') }}" class="underline hover:text-white transition-colors">{{ __('Complete Reservation') }}</a>
+        </div>
+    @endif
 
     <section class="relative pt-32 pb-24 lg:pt-48 lg:pb-36 overflow-hidden flex flex-col items-center text-center px-6">
         <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#FACC15 1px, transparent 1px); background-size: 60px 60px;"></div>

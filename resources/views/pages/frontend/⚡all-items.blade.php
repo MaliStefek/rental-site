@@ -158,8 +158,13 @@ new #[Layout('layouts.app')] class extends Component
                 @if($this->tools->isEmpty())
                     <div class="w-full text-center py-32 bg-dark border-2 border-gray-800 flex flex-col items-center justify-center">
                         <flux:icon.wrench-screwdriver class="w-16 h-16 text-gray-700 mb-6" />
-                        <h2 class="font-black text-2xl uppercase tracking-widest text-white">{{ __('No equipment found') }}</h2>
-                        <p class="mt-3 text-sm text-gray-500 font-bold uppercase tracking-wider max-w-sm">{{ __('Try adjusting your filters or search term to find what you need.') }}</p>
+                        @if(!empty($selectedCategories) && !$search && !$minPrice && !$maxPrice)
+                            <h2 class="font-black text-2xl uppercase tracking-widest text-white">{{ __('Category Empty') }}</h2>
+                            <p class="mt-3 text-sm text-gray-500 font-bold uppercase tracking-wider max-w-sm">{{ __('This category currently has no active equipment available.') }}</p>
+                        @else
+                            <h2 class="font-black text-2xl uppercase tracking-widest text-white">{{ __('No matches found') }}</h2>
+                            <p class="mt-3 text-sm text-gray-500 font-bold uppercase tracking-wider max-w-sm">{{ __('Try adjusting your filters or search term to find what you need.') }}</p>
+                        @endif
                         <button wire:click="clearFilters" class="mt-8 bg-primary hover:bg-primary-dark text-text-main font-black uppercase tracking-widest py-4 px-10 transition-colors shadow-[6px_6px_0px_0px_#ffffff] hover:shadow-none hover:translate-y-[6px] hover:translate-x-[6px]">
                             {{ __('Clear all filters') }}
                         </button>

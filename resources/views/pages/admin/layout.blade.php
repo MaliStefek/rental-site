@@ -10,6 +10,11 @@
             <flux:navlist.item :href="route('admin.dashboard')" :current="request()->routeIs('admin.dashboard')" wire:navigate icon="chart-bar">
                 {{ __('Dashboard') }}
             </flux:navlist.item>
+            
+            <flux:navlist.item :href="route('analytics.index')" :current="request()->routeIs('analytics.*')" wire:navigate icon="presentation-chart-line">
+                {{ __('Analytics') }}
+            </flux:navlist.item>
+            
             <flux:navlist.item :href="route('categories.edit')" :current="request()->routeIs('categories.*')" wire:navigate icon="rectangle-stack">
                 {{ __('Categories') }}
             </flux:navlist.item>
@@ -21,6 +26,12 @@
             </flux:navlist.item>
             <flux:navlist.item :href="route('tools.edit')" :current="request()->routeIs('tools.*')" wire:navigate icon="wrench-screwdriver">
                 {{ __('Tools') }}
+            </flux:navlist.item>
+            <flux:navlist.item :href="route('users.index')" :current="request()->routeIs('users.*')" wire:navigate icon="users">
+                {{ __('Users & Roles') }}
+            </flux:navlist.item>
+            <flux:navlist.item :href="route('activity.index')" :current="request()->routeIs('activity.*')" wire:navigate icon="clipboard-document-list">
+                {{ __('Activity Logs') }}
             </flux:navlist.item>
         </flux:navlist>
 

@@ -22,11 +22,10 @@ new class extends Component {
         unset($this->rentals);
     }
 
-    #[Computed]
-    public function rentals()
+    private function buildQuery()
     {
         return Rental::query()
-            ->with(['user'])
+            ->with(['user', 'items.tool'])
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('id', 'like', '%' . $this->search . '%')
@@ -35,9 +34,60 @@ new class extends Component {
                                ->orWhere('email', 'like', '%' . $this->search . '%');
                       });
                 });
-            })
-            ->latest()
-            ->paginate(8);
+            });
+    }
+
+    #[Computed]
+    public function rentals()
+    {
+        return $this->buildQuery()->latest()->paginate(8);
+    }
+
+    public function downloadCsv()
+    {
+        $rentals = $this->buildQuery()->get();
+        $filename = 'rentals-export-' . now()->format('Y-m-d') . '.csv';
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $columns = ['Order ID', 'Customer Name', 'Email', 'Phone', 'Tools', 'Start Date', 'End Date', 'Subtotal', 'Late Fees', 'Damage Fees', 'Total', 'Paid', 'Payment Status', 'Rental Status'];
+
+        $callback = function() use($rentals, $columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+
+            foreach ($rentals as $rental) {
+                $toolsList = $rental->items->map(fn($i) => $i->quantity . 'x ' . ($i->tool->name ?? 'Unknown'))->implode('; ');
+                $custName = $rental->customer_first_name ? ($rental->customer_first_name . ' ' . $rental->customer_last_name) : ($rental->user->name ?? 'N/A');
+                $custEmail = $rental->customer_email ?? ($rental->user->email ?? 'N/A');
+
+                fputcsv($file, [
+                    $rental->id,
+                    $custName,
+                    $custEmail,
+                    $rental->customer_phone ?? '',
+                    $toolsList,
+                    $rental->start_at?->format('Y-m-d'),
+                    $rental->end_at?->format('Y-m-d'),
+                    $rental->subtotal_cents / 100,
+                    $rental->late_fee_cents / 100,
+                    $rental->damage_fee_cents / 100,
+                    $rental->total_cents / 100,
+                    $rental->paid_cents / 100,
+                    $rental->payment_status->value ?? $rental->payment_status,
+                    $rental->status->value ?? $rental->status
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }; ?>
 
@@ -47,13 +97,17 @@ new class extends Component {
             {{ __('Rental Records') }}
         </flux:heading>
         
-        <div class="w-full md:w-1/3">
+        <div class="flex gap-4 w-full md:w-1/2 justify-end">
             <flux:input 
                 wire:model.live.debounce.300ms="search" 
                 icon="magnifying-glass" 
-                placeholder="Search by Order ID, Name, or Email..." 
-                class="!text-primary !bg-dark placeholder:text-primary/50 !border-gray-700 focus:!border-primary rounded-none"
+                placeholder="Search..." 
+                class="w-full md:w-2/3 !text-primary !bg-dark placeholder:text-primary/50 !border-gray-700 focus:!border-primary rounded-none"
             />
+            
+            <flux:button wire:click="downloadCsv" icon="document-arrow-down" class="bg-zinc-800 hover:bg-zinc-700 text-white !rounded-none uppercase tracking-widest font-black shrink-0">
+                {{ __('CSV') }}
+            </flux:button>
         </div>
     </div>
 
@@ -70,49 +124,33 @@ new class extends Component {
         <flux:table.rows>
             @forelse ($this->rentals as $rental)
                 <flux:table.row :key="$rental->id" class="border-b border-primary/20 hover:bg-primary/5">
-                    
-                    <flux:table.cell class="font-bold text-white">
-                        #{{ $rental->id }}
-                    </flux:table.cell>
-
+                    <flux:table.cell class="font-bold text-white">#{{ $rental->id }}</flux:table.cell>
                     <flux:table.cell>
                         <div class="flex flex-col">
-                            <span class="font-bold text-primary">{{ $rental->user?->name ?? 'Guest/Deleted' }}</span>
-                            <span class="text-xs text-gray-500">{{ $rental->user?->email ?? 'N/A' }}</span>
+                            <span class="font-bold text-primary">{{ $rental->customer_first_name ? $rental->customer_first_name . ' ' . $rental->customer_last_name : ($rental->user?->name ?? 'Guest') }}</span>
+                            <span class="text-xs text-gray-500">{{ $rental->customer_email ?? ($rental->user?->email ?? 'N/A') }}</span>
                         </div>
                     </flux:table.cell>
-
                     <flux:table.cell class="text-gray-300 text-xs font-bold">
                         {{ $rental->start_at?->format('M d, Y') ?? 'N/A' }} <br>
                         <span class="text-gray-600">to</span> {{ $rental->end_at?->format('M d, Y') ?? 'N/A' }}
                     </flux:table.cell>
-
-                    <flux:table.cell class="font-black italic text-white">
-                        €{{ number_format($rental->total_cents / 100, 2) }}
-                    </flux:table.cell>
-
+                    <flux:table.cell class="font-black italic text-white">€{{ number_format($rental->total_cents / 100, 2) }}</flux:table.cell>
                     <flux:table.cell>
                         @php
                             $statusVal = $rental->status->value ?? $rental->status;
                             $variant = match($statusVal) {
-                                'active' => 'success',
-                                'overdue' => 'danger',
-                                'confirmed' => 'info',
-                                'returned', 'cancelled' => 'neutral',
-                                default => 'subtle',
+                                'active' => 'success', 'overdue' => 'danger', 'confirmed' => 'info',
+                                'returned', 'cancelled' => 'neutral', default => 'subtle',
                             };
                         @endphp
-                        <flux:badge :variant="$variant" size="sm" class="uppercase tracking-widest font-bold">
-                            {{ ucfirst($statusVal) }}
-                        </flux:badge>
+                        <flux:badge :variant="$variant" size="sm" class="uppercase tracking-widest font-bold">{{ ucfirst($statusVal) }}</flux:badge>
                     </flux:table.cell>
-
                     <flux:table.cell>
                         <div class="flex items-center">
                             <livewire:admin.rental.manage-btn :rental="$rental" :wire:key="'manage-'.$rental->id" />
                         </div>
                     </flux:table.cell>
-
                 </flux:table.row>
             @empty
                 <flux:table.row>

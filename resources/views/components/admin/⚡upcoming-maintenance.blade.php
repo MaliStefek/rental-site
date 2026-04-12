@@ -3,6 +3,7 @@
 use Livewire\Component;
 use Livewire\Attributes\Computed;
 use App\Models\ToolMaintenanceLog;
+use App\Enums\AssetStatus;
 use Carbon\Carbon;
 
 new class extends Component {
@@ -11,6 +12,9 @@ new class extends Component {
     public function upcoming()
     {
         return ToolMaintenanceLog::with(['asset.tool'])
+            ->whereHas('asset', function($q) {
+                $q->where('status', '!=', AssetStatus::MAINTENANCE->value);
+            })
             ->whereNotNull('next_due_date')
             ->where('next_due_date', '<=', Carbon::now()->addDays(14))
             ->orderBy('next_due_date', 'asc')
@@ -30,7 +34,7 @@ new class extends Component {
     @if($this->upcoming->isEmpty())
         <div class="text-center py-6">
             <p class="text-xs font-bold uppercase tracking-widest text-zinc-500">
-                {{ __('All equipment is up to date.') }}
+                {{ __('All active equipment is up to date.') }}
             </p>
         </div>
     @else
@@ -39,6 +43,7 @@ new class extends Component {
                 @php
                     $dueDate = Carbon::parse($log->next_due_date);
                     $isPast = $dueDate->isPast();
+                    $daysDiff = $isPast ? $dueDate->diffInDays(now()) : now()->diffInDays($dueDate);
                 @endphp
                 
                 <div class="flex items-center justify-between bg-zinc-900/50 p-4 border-l-4 {{ $isPast ? 'border-red-500' : 'border-primary' }}">
@@ -52,11 +57,12 @@ new class extends Component {
                     </div>
                     <div class="text-right">
                         <span class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-1">
-                            {{ __('Due Date') }}
+                            {{ $isPast ? __('Overdue By') : __('Due In') }}
                         </span>
                         <span class="font-black text-sm {{ $isPast ? 'text-red-500' : 'text-primary' }}">
-                            {{ $dueDate->format('M d, Y') }}
+                            {{ $daysDiff }} {{ __('Days') }}
                         </span>
+                        <span class="text-[9px] font-bold text-zinc-600 block mt-1">{{ $dueDate->format('M d, Y') }}</span>
                     </div>
                 </div>
             @endforeach
