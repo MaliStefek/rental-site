@@ -73,7 +73,7 @@ new class extends Component {
         </div>
         <div>
             <span class="block text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">{{ __('Return') }}</span>
-            <span class="block font-bold text-xs text-white uppercase">{{ $rental->end_at->format('M d, Y') }}</span>
+            <span class="block font-bold text-xs text-white uppercase">{{ $rental->end_at?->format('M d, Y') ?? 'TBD' }}</span>
         </div>
     </div>
 

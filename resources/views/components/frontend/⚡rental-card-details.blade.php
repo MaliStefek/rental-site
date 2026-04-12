@@ -73,7 +73,7 @@ new class extends Component {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                 <div class="p-4 border border-gray-800 space-y-1">
                     <h5 class="text-[9px] font-black text-gray-600 uppercase tracking-widest">{{ __('Pickup Location') }}</h5>
-                    <p class="text-xs font-bold text-gray-300">{{ $rental->pickup_location ?? __('Central Warehouse, Ljubljana') }}</p>
+                    <p class="text-xs font-bold text-gray-300">{{ __('Central Warehouse, Ljubljana') }}</p>
                 </div>
                 <div class="p-4 border border-gray-800 space-y-1">
                     <h5 class="text-[9px] font-black text-gray-600 uppercase tracking-widest">{{ __('Payment Status') }}</h5>

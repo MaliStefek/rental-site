@@ -12,6 +12,7 @@ use App\Models\Asset;
 use App\Models\Payment;
 use App\Models\Rental;
 use App\Models\ActivityLog;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -260,12 +261,10 @@ class RentalManagementService
                 'payment_status' => $newPaymentStatus->value,
             ]);
 
-            if (method_exists($this, 'logActivity')) {
-                 $this->logActivity($lockedRental, 'rental_extended', [
-                     'new_end_date' => $newEndDate->toDateString(),
-                     'added_cost_cents' => $additionalSubtotalCents
-                 ]);
-            }
+            $this->logActivity($lockedRental, 'rental_extended', [
+                 'new_end_date' => $newEndDate->toDateString(),
+                 'added_cost_cents' => $additionalSubtotalCents
+            ]);
         });
     }
 }

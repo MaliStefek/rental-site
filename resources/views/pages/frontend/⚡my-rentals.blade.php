@@ -4,6 +4,7 @@ use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Middleware;
+use Livewire\Attributes\On;
 use App\Models\Rental;
 
 new #[Layout('layouts.app')] #[Middleware('auth')] class extends Component 
@@ -15,6 +16,12 @@ new #[Layout('layouts.app')] #[Middleware('auth')] class extends Component
             ->with(['items.tool', 'payments'])
             ->latest()
             ->get();
+    }
+
+    #[On('rentalUpdated')]
+    public function refreshRentals(): void
+    {
+        unset($this->rentals);
     }
 }; ?>
 

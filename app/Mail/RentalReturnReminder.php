@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\Rental;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -9,14 +10,14 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class RentalReturnReminder extends Mailable
+class RentalReturnReminder extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
     /**
      * Create a new message instance.
      */
-    public function __construct()
+    public function __construct(public Rental $rental)
     {
         //
     }
@@ -27,7 +28,7 @@ class RentalReturnReminder extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Rental Return Reminder',
+            subject: 'Reminder: Your Rental Return is Tomorrow — Order #' . $this->rental->id,
         );
     }
 
@@ -37,7 +38,7 @@ class RentalReturnReminder extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'view.name',
+            view: 'emails.rental-return-reminder',
         );
     }
 
